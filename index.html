@@ -88,6 +88,11 @@
         .day-friday-cell { color: #0288D1 !important; font-weight: 700; background-color: #E0F2FE !important; }
         .day-holiday-cell { color: #D32F2F !important; font-weight: 700; background-color: #FFEBEE !important; }
 
+        /* Excel Custom Styling Rules for Preview Container */
+        .excel-table th { background-color: #B71C1C !important; color: #FFFFFF !important; text-align: center; }
+        .excel-table tr:nth-child(even) { background-color: #F0F9FF; }
+        .excel-table tr:nth-child(odd) { background-color: #FFFFFF; }
+
         @media print {
             .signature-card, .no-print { display: none !important; }
         }
@@ -122,10 +127,10 @@
                 <p class="text-xs font-bold text-naifRed mt-1 uppercase tracking-wider">نظام إدارة الدوام الإضافي والمبيعات - الكويت</p>
             </div>
             
-            <!-- رسالة الخطأ المباشرة عند تسجيل الدخول -->
+            <!-- تنبيه الخطأ المباشر عند إدخال كلمة المرور خاطئة -->
             <div id="loginErrorMsg" class="hidden mb-4 p-3 bg-red-100 border border-red-400 text-red-700 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-2">
-                <i class="fas fa-exclamation-circle"></i>
-                <span>اسم المستخدم أو كلمة المرور غير صحيحة!</span>
+                <i class="fas fa-exclamation-circle text-base"></i>
+                <span>كلمة المرور غير صحيحة، يرجى إعادة المحاولة!</span>
             </div>
 
             <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
@@ -1073,16 +1078,16 @@
             }
 
             let tableHtml = `
-                <table id="monthlyReportTable" class="w-full text-right border-collapse text-xs border border-gray-300">
+                <table id="monthlyReportTable" class="excel-table w-full text-right border-collapse text-xs border border-gray-300">
                     <thead>
                         <tr class="bg-naifDark text-white font-bold border-b">
-                            <th class="p-2 border border-gray-700 min-w-[140px] sticky right-0 bg-naifDark z-10">اسم الموظف</th>
+                            <th class="p-2 border border-gray-700 min-w-[140px] sticky right-0 z-10">اسم الموظف</th>
                             <th class="p-2 border border-gray-700">الرقم</th>
                             ${daysHeaderCells}
-                            <th class="p-2 border border-gray-700 font-black bg-naifRed">ساعات عمل</th>
-                            <th class="p-2 border border-gray-700 font-black bg-naifRed">ساعات إضافي</th>
-                            <th class="p-2 border border-gray-700 font-black bg-naifRed">قيمة الإضافي</th>
-                            <th class="p-2 border border-gray-700 font-black bg-emerald-800">إجمالي الاستحقاق</th>
+                            <th class="p-2 border border-gray-700 font-black">ساعات عمل</th>
+                            <th class="p-2 border border-gray-700 font-black">ساعات إضافي</th>
+                            <th class="p-2 border border-gray-700 font-black">قيمة الإضافي</th>
+                            <th class="p-2 border border-gray-700 font-black">إجمالي الاستحقاق</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
@@ -1153,7 +1158,7 @@
                 grandTotalOvertimePay += empTotalOvertimePay;
 
                 tableHtml += `
-                    <tr class="hover:bg-gray-50 font-semibold">
+                    <tr class="font-semibold">
                         <td class="p-2 border font-bold text-gray-900 sticky right-0 bg-white z-10">${emp.name}</td>
                         <td class="p-2 border font-mono">${emp.empId}</td>
                         ${daysCellsHtml}
@@ -1167,7 +1172,7 @@
 
             // مجموع الأرقام أسفل الجدول
             tableHtml += `
-                <tr class="bg-gray-200 font-black border-t-2 border-gray-800">
+                <tr class="bg-amber-100 font-black border-t-2 border-gray-800">
                     <td class="p-2 border text-gray-900 font-bold" colspan="${daysInMonth + 2}">الإجمالي العام لجميع الموظفين</td>
                     <td class="p-2 border font-mono text-gray-900">${grandTotalWorkHours}</td>
                     <td class="p-2 border font-mono text-naifRed">${grandTotalOvertimeHours}</td>
@@ -1220,7 +1225,7 @@
             logAudit(currentUser.username, 'معاينة التقرير الشهري', `توليد التقرير لشهر ${monthStr} لمطعم ${restName}`);
         }
 
-        // تصدير ملف اكسل منسق باحترافية سطر وسطر لون أزرق ورأس أحمر
+        // تصدير ملف اكسل ملون سطر وسطر أزرق وأبيض ورأس أحمر
         function exportReportExcel() {
             const table = document.getElementById('monthlyReportTable');
             if (!table) return;
@@ -1255,7 +1260,6 @@
             }
 
             const ws = XLSX.utils.aoa_to_sheet(wsData);
-
             if(!ws['!views']) ws['!views'] = [{RTL: true}];
 
             XLSX.utils.book_append_sheet(wb, ws, "التقرير الشهري");
@@ -1263,13 +1267,13 @@
             logAudit(currentUser.username, 'تصدير XLSX', 'تصدير التقرير المنسق لملف إكسل بنجاح');
         }
 
-        // تصدير PDF مباشر صفحة واحدة ملائمة العرض
+        // تصدير PDF مباشر كامل الأعمدة في صفحة واحدة
         async function exportReportPDF() {
             const reportArea = document.getElementById('reportPreviewContainer');
             if(!reportArea) return;
 
             try {
-                showModal('جاري التصدير', 'جاري معالجة وحفظ التقرير بصيغة PDF صفحة واحدة...', 'fas fa-spinner fa-spin text-naifRed');
+                showModal('جاري التصدير', 'جاري معالجة وحفظ التقرير بصيغة PDF صفحة واحدة كاملة...', 'fas fa-spinner fa-spin text-naifRed');
                 
                 const canvas = await html2canvas(reportArea, {
                     scale: 2,
