@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شركة نايف للأغذية - نظام إدارة الدوام والمبيعات</title>
+    <link rel="icon" href="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" type="image/jpeg">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (XLSX) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF & html2canvas for Smart Page Split Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        naifRed: '#D32F2F',
+                        naifDarkRed: '#B71C1C',
+                        naifLightRed: '#FFEBEE',
+                        naifDark: '#1A1A1A',
+                        naifAccent: '#0288D1'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Disable Chrome, Safari, Edge, Firefox number input arrows */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] { 
+            -moz-appearance: textfield; 
+        }
+
+        /* Developer Floating Signature Badge */
+        .signature-card {
+            position: fixed;
+            bottom: 15px;
+            left: 15px;
+            background: #ffffff;
+            color: #0288D1;
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 0.65rem;
+            font-weight: 600;
+            z-index: 1000;
+            animation: floatBadge 5s ease-in-out infinite;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid #D32F2F;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .signature-card:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0 12px 30px rgba(211,47,47,0.3); 
+        }
+        @keyframes floatBadge { 
+            0% { transform: translateY(0px); } 
+            50% { transform: translateY(-10px); } 
+            100% { transform: translateY(0px); } 
+        }
+        .signature-card .name { font-size: 0.75rem; font-weight: 700; color: #0288D1; margin-bottom: 2px; }
+        .signature-card .title { font-size: 0.6rem; color: #475569; font-weight: 600; }
+
+        /* Floating KPI animation */
+        .floating-kpi {
+            animation: kpiFloat 6s ease-in-out infinite;
+        }
+        @keyframes kpiFloat {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* Highlight days in report */
+        .day-friday-cell { color: #0288D1 !important; font-weight: 700; background-color: #E0F2FE !important; }
+        .day-holiday-cell { color: #D32F2F !important; font-weight: 700; background-color: #FFEBEE !important; }
+
+        @media print {
+            .signature-card, .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col">
+
+    <!-- Developer Floating Badge -->
+    <a href="https://yasser-q8.github.io/myprofile/#" class="signature-card no-print" target="_blank" rel="noopener noreferrer">
+        <div class="name">Yasser Elkhateeb</div>
+        <div class="title">مطور البرنامج 67011143</div>
+    </a>
+
+    <!-- Custom Modal Dialog (No alert/confirm) -->
+    <div id="customModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center transform transition-all border-t-8 border-naifRed">
+            <div id="modalIcon" class="text-4xl mb-3 text-naifRed"><i class="fas fa-info-circle"></i></div>
+            <h3 id="modalTitle" class="text-xl font-black mb-2 text-gray-900">تنبيه النظام</h3>
+            <p id="modalMessage" class="text-sm text-gray-600 mb-6 leading-relaxed">الرسالة هنا</p>
+            <div id="modalButtons" class="flex justify-center gap-3">
+                <button onclick="closeModal()" class="bg-naifRed text-white px-6 py-2.5 rounded-xl font-bold hover:bg-naifDarkRed transition shadow-lg shadow-red-500/30">موافق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Screen View -->
+    <div id="loginView" class="fixed inset-0 bg-gradient-to-br from-naifDarkRed via-naifRed to-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl max-w-md w-full p-8 border border-white/20">
+            <div class="text-center mb-6">
+                <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="Naif Logo" class="w-24 h-24 object-contain mx-auto mb-4 rounded-2xl shadow-md border border-gray-100">
+                <h1 class="text-2xl font-black text-gray-900">شركة نايف للأغذية</h1>
+                <p class="text-xs font-bold text-naifRed mt-1 uppercase tracking-wider">نظام إدارة الدوام الإضافي والمبيعات - الكويت</p>
+            </div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div class="relative">
+                    <label class="block text-xs font-bold text-gray-700 mb-1">ابحث واختر اسم المستخدم / المطعم (بالحرف)</label>
+                    <input type="text" id="loginUserSearchInput" placeholder="اكتب أول حروف للبحث..." oninput="filterLoginUsers()" autocomplete="off" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-naifRed focus:outline-none bg-gray-50 text-sm font-semibold">
+                    <select id="loginUserSelect" class="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-naifRed focus:outline-none bg-white text-xs font-semibold" size="4" required>
+                        <!-- Dynamic options loaded via JS -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">كلمة المرور</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-naifRed focus:outline-none bg-gray-50 text-sm" required>
+                </div>
+                <button type="submit" class="w-full bg-naifRed hover:bg-naifDarkRed text-white font-black py-3.5 rounded-xl transition shadow-xl shadow-red-600/30 text-base">
+                    تسجيل الدخول للنظام
+                </button>
+            </form>
+            <div class="mt-6 text-center text-xs text-gray-400 font-medium">
+                جميع الحقوق محفوظة © شركة نايف للأغذية - دولة الكويت
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application Container -->
+    <div id="appContainer" class="flex-1 flex flex-col hidden">
+        <!-- Header Top Navbar -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="Naif Logo" class="w-10 h-10 object-contain rounded-lg border border-gray-200">
+                    <div>
+                        <h2 class="font-black text-gray-900 text-base leading-tight" id="navBrandTitle">شركة نايف للأغذية</h2>
+                        <span class="text-xs text-naifRed font-bold" id="navUserRoleBadge">مستخدم</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="syncWithFirebaseNow()" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 px-3 py-2 rounded-xl transition font-bold flex items-center gap-1.5 shadow-sm">
+                        <i class="fas fa-sync-alt"></i> مزامنة Firebase
+                    </button>
+                    <button onclick="openChangePasswordModal()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-xl transition font-bold flex items-center gap-1.5">
+                        <i class="fas fa-key text-naifRed"></i> تغيير كلمة السر
+                    </button>
+                    <button onclick="logout()" class="text-xs bg-red-50 hover:bg-red-100 text-naifRed px-3 py-2 rounded-xl transition font-bold flex items-center gap-1.5">
+                        <i class="fas fa-sign-out-alt"></i> خروج
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Bar Tabs -->
+            <div class="bg-gray-900 border-t border-gray-800 px-4 sm:px-6 lg:px-8">
+                <div class="max-w-7xl mx-auto flex space-x-2 space-x-reverse overflow-x-auto py-2">
+                    <button onclick="switchTab('dailyEntry')" id="tabBtn-dailyEntry" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold bg-naifRed text-white transition flex items-center gap-2 whitespace-nowrap shadow-md">
+                        <i class="fas fa-calendar-check"></i> تسجيل الدوام والمبيعات
+                    </button>
+                    <button onclick="switchTab('reports')" id="tabBtn-reports" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:bg-gray-800 transition flex items-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-file-invoice"></i> التقرير الشهري الموسع
+                    </button>
+                    <button onclick="switchTab('settings')" id="tabBtn-settings" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:bg-gray-800 transition flex items-center gap-2 whitespace-nowrap admin-only hidden">
+                        <i class="fas fa-sliders-h"></i> الإعدادات الشاملة
+                    </button>
+                    <button onclick="switchTab('auditLogs')" id="tabBtn-auditLogs" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:bg-gray-800 transition flex items-center gap-2 whitespace-nowrap sysadmin-only hidden">
+                        <i class="fas fa-history"></i> سجل الحركات (Audit Log)
+                    </button>
+                    <button onclick="switchTab('passwordsPage')" id="tabBtn-passwordsPage" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:bg-gray-800 transition flex items-center gap-2 whitespace-nowrap sysadmin-only hidden">
+                        <i class="fas fa-user-lock"></i> كلمات السر الحسابية
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+            <!-- TAB 1: Daily Operations & Attendance -->
+            <div id="tab-dailyEntry" class="tab-content active space-y-6">
+                <!-- Top Restaurant & Date Selector -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100">
+                        <div>
+                            <h3 class="text-xl font-black text-gray-900">تسجيل حركة الدوام والمبيعات اليومية</h3>
+                            <p class="text-xs text-gray-500 font-medium mt-1">اختر المطعم والتاريخ لإدخال المبيعات ودوام الموظفين بسلاسة.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">بحث المطعم بالحرف:</label>
+                                <input type="text" id="activeRestaurantSearchInput" placeholder="بحث المطعم..." oninput="filterActiveRestaurants()" class="px-3 py-1.5 border rounded-xl font-semibold bg-gray-50 text-xs w-36 mb-1 block">
+                                <select id="activeRestaurantSelect" onchange="loadDailyData()" class="px-3 py-2 border rounded-xl font-bold bg-gray-50 text-xs focus:ring-2 focus:ring-naifRed">
+                                    <!-- Dynamic -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">التاريخ المحدد:</label>
+                                <input type="date" id="activeDateInput" onchange="loadDailyData()" class="px-3 py-2 border rounded-xl font-bold bg-gray-50 text-xs focus:ring-2 focus:ring-naifRed">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Floating KPI Dashboard Statistics Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                        <div class="floating-kpi bg-gradient-to-br from-red-50 to-orange-50 border border-red-200 p-4 rounded-2xl shadow-sm">
+                            <span class="text-xs font-black text-naifRed block mb-1">مبيعات اليوم والهدف الشهري</span>
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-xl font-black text-gray-900 font-mono" id="kpiDailySales">0.000</span>
+                                <span class="text-xs text-naifRed bg-red-100 px-2 py-0.5 rounded-full font-bold" id="kpiTargetProgress">0%</span>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-600 flex justify-between font-semibold">
+                                <span>متوسط الهدف اليومي: <strong id="kpiAvgTarget" class="font-mono">0.000</strong></span>
+                                <span>الفرق: <strong id="kpiDiffTarget" class="font-mono">0.000</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="floating-kpi bg-gradient-to-br from-slate-50 to-gray-100 border border-gray-200 p-4 rounded-2xl shadow-sm" style="animation-delay: 1s;">
+                            <span class="text-xs font-black text-gray-700 block mb-1">إجمالي الرواتب اليومية</span>
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-xl font-black text-gray-900 font-mono" id="kpiTotalDailySalaries">0.000</span>
+                                <span class="text-xs text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full font-bold" id="kpiSalaryPercentage">0%</span>
+                            </div>
+                            <span class="text-xs text-gray-500 mt-2 block font-medium">نسبة الرواتب للمبيعات اليومية</span>
+                        </div>
+
+                        <div class="floating-kpi bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200 p-4 rounded-2xl shadow-sm" style="animation-delay: 2s;">
+                            <span class="text-xs font-black text-naifAccent block mb-1">معدل الإنتاجية (المبيعات / الساعات)</span>
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-xl font-black text-sky-900 font-mono" id="kpiProductivityRate">0.000</span>
+                                <span class="text-xs text-sky-700 bg-sky-200 px-2 py-0.5 rounded-full font-bold">مؤشر كفاءة</span>
+                            </div>
+                            <span class="text-xs text-gray-500 mt-2 block font-medium">مبيعات اليوم / مجموع ساعات الموظفين</span>
+                        </div>
+
+                        <div class="bg-white border-2 border-naifRed p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+                            <span class="text-xs font-black text-naifRed block mb-1">تسجيل المبيعات وتثبيت الهدف</span>
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="text" id="inputDailySales" placeholder="مبيعات اليوم" class="w-full px-2.5 py-1.5 text-xs border rounded-lg font-mono" oninput="calculateKPIs()">
+                                    <input type="text" id="inputMonthlyTarget" placeholder="هدف الشهر الثابت" class="w-full px-2.5 py-1.5 text-xs border rounded-lg font-mono" oninput="calculateKPIs()">
+                                </div>
+                                <button onclick="saveDailySalesAndTarget()" class="w-full bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold py-1.5 rounded-lg transition shadow">تثبيت الهدف وحفظ المبيعات</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Grid Input Table -->
+                    <div class="overflow-x-auto border border-gray-200 rounded-2xl">
+                        <table class="w-full text-right border-collapse text-xs" id="attendanceGridTable">
+                            <thead>
+                                <tr class="bg-naifDark text-white uppercase font-bold">
+                                    <th class="p-3 border-b border-gray-800">الرقم الوظيفي</th>
+                                    <th class="p-3 border-b border-gray-800">اسم الموظف</th>
+                                    <th class="p-3 border-b border-gray-800">الراتب الأساسي</th>
+                                    <th class="p-3 border-b border-gray-800">البدلات</th>
+                                    <th class="p-3 border-b border-gray-800">حالة الدوام</th>
+                                    <th class="p-3 border-b border-gray-800">ساعات العمل الفعلية</th>
+                                    <th class="p-3 border-b border-gray-800">ساعات الإضافي (حد أقصى 3)</th>
+                                    <th class="p-3 border-b border-gray-800">قيمة الإضافي</th>
+                                    <th class="p-3 border-b border-gray-800">إجمالي اليوم</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeesAttendanceTableBody" class="divide-y divide-gray-100 font-semibold">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4 flex justify-end">
+                        <button onclick="saveAttendanceData()" class="bg-naifRed hover:bg-naifDarkRed text-white font-black px-6 py-2.5 rounded-xl transition shadow-lg shadow-red-500/20 flex items-center gap-2">
+                            <i class="fas fa-save"></i> حفظ الدوام والبيانات اليومية
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Expanded Monthly Detailed Report -->
+            <div id="tab-reports" class="tab-content space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-xl font-black text-gray-900 mb-2"><i class="fas fa-file-invoice text-naifRed mr-2"></i> التقرير الشهري الموحد للموظفين والدوام</h3>
+                    <p class="text-xs text-gray-500 mb-6">تقرير تفصيلي يظهر فيه كل موظف مرة واحدة فقط وبجواره سجل الدوام والإضافي لكل أيام الشهر ومجموع الساعات والمبالغ مع الملخص المالي أسفل الجدول.</p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">المطعم:</label>
+                            <input type="text" id="reportRestaurantSearchInput" placeholder="بحث المطعم بالحرف..." oninput="filterReportRestaurants()" class="px-2.5 py-1 border rounded-lg text-xs bg-white mb-1 w-full font-semibold">
+                            <select id="reportRestaurant" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-bold">
+                                <option value="all">جميع المطاعم المصرحة</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">الشهر / السنة:</label>
+                            <input type="month" id="reportMonthPicker" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">الغرض من التقرير:</label>
+                            <input type="text" id="reportPurpose" placeholder="مثال: التدقيق الشهري للرواتب" class="w-full px-3 py-2 border rounded-xl text-xs bg-white">
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="generateReportPreview()" class="w-full bg-naifRed hover:bg-naifDarkRed text-white font-bold py-2 rounded-xl text-xs transition shadow">معاينة التقرير</button>
+                        </div>
+                    </div>
+
+                    <!-- Report Preview Container -->
+                    <div id="reportPreviewContainer" class="border border-gray-200 rounded-2xl p-6 bg-white shadow-inner hidden space-y-6">
+                        <div class="flex justify-between items-center border-b pb-4">
+                            <div>
+                                <h4 class="text-lg font-black text-gray-900" id="reportTitleHeader">شركة نايف للأغذية - التقرير الشهري</h4>
+                                <p class="text-xs text-gray-500 font-semibold" id="reportSubtitleInfo">الفترة والغرض المحدد</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="exportReportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5"><i class="fas fa-file-excel"></i> تصدير XLSX</button>
+                                <button onclick="exportReportPDF()" class="bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5"><i class="fas fa-file-pdf"></i> تصدير PDF مباشر</button>
+                            </div>
+                        </div>
+
+                        <div id="reportTableWrapper" class="overflow-x-auto space-y-6">
+                            <!-- Dynamic Table matching requirement: 1st Col Employee, Days Cols, Totals -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Comprehensive Settings -->
+            <div id="tab-settings" class="tab-content space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-8">
+                    <div>
+                        <h3 class="text-xl font-black text-gray-900 mb-1"><i class="fas fa-sliders-h text-naifRed mr-2"></i> لوحة الإعدادات الشاملة والملفات</h3>
+                        <p class="text-xs text-gray-500">إدارة استيراد اكسل الموظفين والمدراء، العطل الرسمية الكويتية، وتعديل صلاحيات المطاعم.</p>
+                    </div>
+
+                    <!-- Import XLSX Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+                        <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200">
+                            <h4 class="font-black text-gray-800 text-xs mb-2"><i class="fas fa-file-excel text-emerald-600 mr-2"></i> 1. تحميل ملف الموظفين (XLSX)</h4>
+                            <p class="text-xs text-gray-500 mb-4">الأعمدة المطلوبة: (الرقم الوظيفي، اسم الموظف، الراتب الأساسي، البدلات)</p>
+                            <input type="file" id="excelEmployeesFile" accept=".xlsx, .xls, .xlsm" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-naifRed hover:file:bg-red-100 mb-3">
+                            <button onclick="importEmployeesExcel()" class="bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold px-4 py-2 rounded-xl transition">استيراد الموظفين</button>
+                        </div>
+
+                        <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200">
+                            <h4 class="font-black text-gray-800 text-xs mb-2"><i class="fas fa-file-excel text-emerald-600 mr-2"></i> 2. تحميل ملف المطاعم والمدراء (XLSX)</h4>
+                            <p class="text-xs text-gray-500 mb-4">الأعمدة المطلوبة: (اسم المطعم، مدير المنطقة، مدير التشغيل)</p>
+                            <input type="file" id="excelManagersFile" accept=".xlsx, .xls, .xlsm" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-naifRed hover:file:bg-red-100 mb-3">
+                            <button onclick="importManagersExcel()" class="bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold px-4 py-2 rounded-xl transition">استيراد المطاعم والمدراء</button>
+                        </div>
+                    </div>
+
+                    <!-- Official Holidays Definition (HR Manager / SysAdmin) -->
+                    <div class="pt-6 border-t border-gray-100">
+                        <h4 class="font-black text-gray-800 text-xs mb-2"><i class="fas fa-calendar-star text-amber-600 mr-2"></i> أيام العطل الرسمية السنوية (مسؤول الـ HR)</h4>
+                        <p class="text-xs text-gray-500 mb-3">حدد تواريخ العطل ليتم حساب الإضافي بنسبة (x2.000) تلقائياً.</p>
+                        <div class="flex gap-3 max-w-md">
+                            <input type="date" id="newHolidayInput" class="px-3 py-2 border rounded-xl text-xs flex-1">
+                            <button onclick="addHolidayDate()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition">إضافة عطلة</button>
+                        </div>
+                        <div id="holidaysListContainer" class="flex flex-wrap gap-2 mt-3">
+                            <!-- Dynamic Badges -->
+                        </div>
+                    </div>
+
+                    <!-- Users & Roles Display -->
+                    <div class="pt-6 border-t border-gray-100">
+                        <h4 class="font-black text-gray-800 text-xs mb-4"><i class="fas fa-users-cog text-naifRed mr-2"></i> جدول المستخدمين والصلاحيات التابعة (بدون كلمات السر)</h4>
+                        <div class="overflow-x-auto border border-gray-200 rounded-2xl">
+                            <table class="w-full text-right border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-gray-100 text-gray-700 uppercase font-bold">
+                                        <th class="p-3 border-b">اسم المستخدم / المطعم</th>
+                                        <th class="p-3 border-b">الصفة / الدور</th>
+                                        <th class="p-3 border-b">المطاعم التابعة المصرحة</th>
+                                        <th class="p-3 border-b">إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersListTableBody" class="divide-y divide-gray-100">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: Audit Logs (SysAdmin Only) -->
+            <div id="tab-auditLogs" class="tab-content space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                        <div>
+                            <h3 class="text-xl font-black text-gray-900"><i class="fas fa-history text-naifRed mr-2"></i> سجل الحركات والتعديلات (Audit Log)</h3>
+                            <p class="text-xs text-gray-500">يتسع لـ 3000 سجل حركة تفصيلي. زر المسح محمي لمدير النظام (ياسر الخطيب) فقط دون إظهار إشعار المسح في السجل.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="text" id="auditSearchInput" placeholder="بحث شامل داخل السجل..." oninput="renderAuditLogs()" class="px-4 py-2 border rounded-xl text-xs w-64 bg-gray-50 focus:ring-2 focus:ring-naifRed">
+                            <button onclick="sysAdminClearLogs()" class="bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold px-4 py-2 rounded-xl transition">مسح السجل بالكامل</button>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500 font-bold mb-2" id="auditLogCountIndicator">إجمالي السجلات: 0</div>
+                    <div class="overflow-x-auto border border-gray-200 rounded-2xl max-h-[500px]">
+                        <table class="w-full text-right border-collapse text-xs">
+                            <thead class="bg-gray-900 text-white font-bold sticky top-0">
+                                <tr>
+                                    <th class="p-3 border-b border-gray-800">التاريخ والوقت</th>
+                                    <th class="p-3 border-b border-gray-800">المستخدم</th>
+                                    <th class="p-3 border-b border-gray-800">نوع الحركة</th>
+                                    <th class="p-3 border-b border-gray-800">التفاصيل الكاملة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditLogsTableBody" class="divide-y divide-gray-100 font-mono">
+                                <!-- Dynamic -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: Passwords Management (SysAdmin Only) -->
+            <div id="tab-passwordsPage" class="tab-content space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
+                    <div>
+                        <h3 class="text-xl font-black text-gray-900 mb-1"><i class="fas fa-user-lock text-naifRed mr-2"></i> إدارة كلمات السر الحسابية (خاص بمدير النظام)</h3>
+                        <p class="text-xs text-gray-500">صفحة سرية منفصلة لإدارة كلمات المرور لجميع حسابات الشركة والمطاعم.</p>
+                    </div>
+                    <div class="overflow-x-auto border border-gray-200 rounded-2xl">
+                        <table class="w-full text-right border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-700 font-bold">
+                                    <th class="p-3 border-b">اسم المستخدم / المطعم</th>
+                                    <th class="p-3 border-b">الدور</th>
+                                    <th class="p-3 border-b">كلمة السر الحالية</th>
+                                    <th class="p-3 border-b">إجراءات التعديل</th>
+                                </tr>
+                            </thead>
+                            <tbody id="passwordsTableBody" class="divide-y divide-gray-100">
+                                <!-- Dynamic -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Password Change Modal -->
+    <div id="changePasswordModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border-t-8 border-naifRed">
+            <h3 class="text-lg font-black mb-4 text-gray-900"><i class="fas fa-key text-naifRed mr-2"></i> تغيير كلمة المرور</h3>
+            <form onsubmit="submitChangePassword(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">كلمة المرور القديمة</label>
+                    <input type="password" id="oldPassInput" required class="w-full px-4 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-naifRed">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">كلمة المرور الجديدة</label>
+                    <input type="password" id="newPassInput" required class="w-full px-4 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-naifRed">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="document.getElementById('changePasswordModal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl text-xs font-bold">إلغاء</button>
+                    <button type="submit" class="px-4 py-2 bg-naifRed text-white rounded-xl text-xs font-bold shadow">حفظ كلمة السر</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Script Logic & Firebase Config -->
+    <script>
+        // Firebase Configuration & Initialization
+        const firebaseConfig = {
+            databaseURL: "https://naif-food-system-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const fbDb = firebase.database();
+
+        // Full List of 59 Naif Restaurants with Managers Mapping
+        const NAIF_RESTAURANTS_MASTER = [
+            { name: 'مول 360', areaManager: 'وليد', opsManager: 'طارق بيومي' },
+            { name: 'جمعية أبو فطيرة', areaManager: 'عماد', opsManager: 'هاني عبدالله' },
+            { name: 'أبوحليفة', areaManager: 'حجازي', opsManager: 'هاني عبدالله' },
+            { name: 'شرق الاحمدي', areaManager: 'حجازي', opsManager: 'هاني عبدالله' },
+            { name: 'المطار', areaManager: 'ثروت', opsManager: 'طارق بيومي' },
+            { name: 'الري', areaManager: 'طارق', opsManager: 'هاني عبدالله' },
+            { name: 'مجمع الكوت', areaManager: 'عماد', opsManager: 'هاني عبدالله' },
+            { name: 'مجمع الافنيوز', areaManager: 'مرتضى', opsManager: 'طارق بيومي' },
+            { name: 'الضباعية', areaManager: 'عماد', opsManager: 'هاني عبدالله' },
+            { name: 'الدسمة وبنيد القار', areaManager: 'انور', opsManager: 'هاني عبدالله' },
+            { name: 'الفحاحيل', areaManager: 'عماد', opsManager: 'هاني عبدالله' },
+            { name: 'الفيحاء', areaManager: 'وليد', opsManager: 'طارق بيومي' },
+            { name: 'الفروانية', areaManager: 'مختار', opsManager: 'طارق بيومي' },
+            { name: 'الفنطاس', areaManager: 'انور', opsManager: 'هاني عبدالله' },
+            { name: 'هدية', areaManager: 'حجازي', opsManager: 'هاني عبدالله' },
+            { name: 'حولي الترفيهي', areaManager: 'وليد', opsManager: 'طارق بيومي' },
+            { name: 'جمعية مدينة جابر الأحمد', areaManager: 'ثروت', opsManager: 'طارق بيومي' },
+            { name: 'الجابرية تكا و فرايد', areaManager: 'طارق', opsManager: 'هاني عبدالله' },
+            { name: 'الجابرية بنت الديك', areaManager: 'طارق', opsManager: 'هاني عبدالله' },
+            { name: 'الجهراء الصناعية', areaManager: 'ثروت', opsManager: 'طارق بيومي' },
+            { name: 'الجهراء - ليالي الشرق', areaManager: 'ثروت', opsManager: 'طارق بيومي' },
+            { name: 'الجهراء - مجمع مكة', areaManager: 'وليد', opsManager: 'طارق بيومي' },
+            { name: 'الجهراء الزويخ', areaManager: 'وليد', opsManager: 'طارق بيومي' },
+            { name: 'سوق الجليب', areaManager: 'مختار', opsManager: 'طارق بيومي' },
+            { name: 'كبد', areaManager: 'مختار', opsManager: 'طارق بيومي' },
+            { name: 'الخيران أويا', areaManager: 'عماد', opsManager: 'هاني عبدالله' },
+            { name: 'الخيران أوتليت', areaManager: 'عماد', opsManager: 'هاني عبدالله' },
+            { name: 'خيطان العصيمي', areaManager: 'مرتضى', opsManager: 'طارق بيومي' },
+            { name: 'الخيول', areaManager: 'حجازي', opsManager: 'هاني عبدالله' },
+            { name: 'المنقف', areaManager: 'عماد', opsManager: 'هاني عبدالله' },
+            { name: 'مارينا مول - عالم المارينا', areaManager: 'طارق', opsManager: 'هاني عبدالله' },
+            { name: 'مشرف', areaManager: 'انور', opsManager: 'هاني عبدالله' },
+            { name: 'العارضية الحرفية', areaManager: 'ثروت', opsManager: 'طارق بيومي' },
+            { name: 'القادسية', areaManager: 'وليد', opsManager: 'طارق بيومي' },
+            { name: 'جمعية القيروان', areaManager: 'مختار', opsManager: 'طارق بيومي' },
+            { name: 'جمعية العدان والقصور', areaManager: 'مرتضى', opsManager: 'طارق بيومي' },
+            { name: 'الرقعي', areaManager: 'ثروت', opsManager: 'طارق بيومي' },
+            { name: 'الرحاب', areaManager: 'مختار', opsManager: 'طارق بيومي' },
+            { name: 'الرقة', areaManager: 'حجازي', opsManager: 'هاني عبدالله' },
+            { name: 'مدينة سعد العبد الله', areaManager: 'ثروت', opsManager: 'طارق بيومي' },
+            { name: 'مدينة صباح الاحمد', areaManager: 'حجازي', opsManager: 'هاني عبدالله' },
+            { name: 'صباح السالم', areaManager: 'انور', opsManager: 'هاني عبدالله' },
+            { name: 'صباح السالم - العرين', areaManager: 'انور', opsManager: 'هاني عبدالله' },
+            { name: 'النافورة', areaManager: 'طارق', opsManager: 'هاني عبدالله' },
+            { name: 'السندباد', areaManager: 'طارق', opsManager: 'هاني عبدالله' },
+            { name: 'شارع البحرين', areaManager: 'طارق', opsManager: 'هاني عبدالله' },
+            { name: 'سيد ياسين', areaManager: 'طارق', opsManager: 'هاني عبدالله' },
+            { name: 'سلوى', areaManager: 'انور', opsManager: 'هاني عبدالله' },
+            { name: 'الشرق', areaManager: 'انور', opsManager: 'هاني عبدالله' },
+            { name: 'جمعية الشهداء', areaManager: 'وليد', opsManager: 'طارق بيومي' },
+            { name: 'الشويخ واره', areaManager: 'ثروت', opsManager: 'طارق بيومي' },
+            { name: 'اسواق القرين', areaManager: 'مرتضى', opsManager: 'طارق بيومي' },
+            { name: 'جمعية الصليبية', areaManager: 'مختار', opsManager: 'طارق بيومي' },
+            { name: 'نادي الصليبخات', areaManager: 'ثروت', opsManager: 'طارق بيومي' },
+            { name: 'الصليبية', areaManager: 'مختار', opsManager: 'طارق بيومي' },
+            { name: 'جمعية الوفرة', areaManager: 'حجازي', opsManager: 'هاني عبدالله' },
+            { name: 'غرب أبو فطيرة الحرفية', areaManager: 'مرتضى', opsManager: 'طارق بيومي' },
+            { name: 'جمعية الزهراء التعاونية', areaManager: 'وليد', opsManager: 'طارق بيومي' },
+            { name: 'خيطان شارع المطار', areaManager: 'مرتضى', opsManager: 'طارق بيومي' }
+        ];
+
+        // Central Database Store Initialization
+        let db = JSON.parse(localStorage.getItem('naif_system_db_v2')) || {
+            users: [
+                { username: 'ياسر الخطيب', role: 'sysAdmin', pass: '123', restaurants: ['all'] },
+                { username: 'محمد علام', role: 'financeAdmin', pass: '123', restaurants: ['all'] },
+                { username: 'انتصار هادي', role: 'hrManager', pass: '123', restaurants: ['all'] },
+                { username: 'ياسمين', role: 'hrStaff', pass: '123', restaurants: ['all'] },
+                { username: 'عبير', role: 'hrStaff', pass: '123', restaurants: ['all'] },
+                { username: 'نجاته', role: 'hrStaff', pass: '123', restaurants: ['all'] },
+                { username: 'طارق بيومي', role: 'opsManager', pass: '123', restaurants: ['all'] },
+                { username: 'هاني عبدالله', role: 'opsManager', pass: '123', restaurants: ['all'] },
+                // Area managers
+                { username: 'وليد', role: 'areaManager', pass: '123', restaurants: [] },
+                { username: 'عماد', role: 'areaManager', pass: '123', restaurants: [] },
+                { username: 'حجازي', role: 'areaManager', pass: '123', restaurants: [] },
+                { username: 'ثروت', role: 'areaManager', pass: '123', restaurants: [] },
+                { username: 'طارق', role: 'areaManager', pass: '123', restaurants: [] },
+                { username: 'مرتضى', role: 'areaManager', pass: '123', restaurants: [] },
+                { username: 'انور', role: 'areaManager', pass: '123', restaurants: [] },
+                { username: 'مختار', role: 'areaManager', pass: '123', restaurants: [] }
+            ],
+            restaurants: NAIF_RESTAURANTS_MASTER,
+            employees: [
+                { empId: '451', name: 'محمد اختر حسين محمد', basicSalary: 130, allowances: 0 },
+                { empId: '415', name: 'محمد شمس الدين محمد أزهار', basicSalary: 130, allowances: 0 },
+                { empId: '971', name: 'إمام حسن حاجي سليمان', basicSalary: 130, allowances: 0 },
+                { empId: '358', name: 'سليمان ابو طاهر', basicSalary: 130, allowances: 0 },
+                { empId: '1001', name: 'أحمد محمود', basicSalary: 350, allowances: 50 },
+                { empId: '1002', name: 'محمد عبدالمجيد', basicSalary: 400, allowances: 60 }
+            ],
+            holidays: ['2026-02-25', '2026-02-26'],
+            monthlyTargets: {},
+            dailyRecords: {},
+            auditLogs: []
+        };
+
+        // Populate Area Managers' default restaurant lists dynamically if empty
+        db.users.forEach(u => {
+            if (u.role === 'areaManager' && u.restaurants.length === 0) {
+                u.restaurants = db.restaurants.filter(r => r.areaManager === u.username).map(r => r.name);
+            }
+        });
+
+        // Ensure all 59 restaurants exist as individual login accounts
+        db.restaurants.forEach(r => {
+            if (!db.users.some(u => u.username === r.name)) {
+                db.users.push({ username: r.name, role: 'restaurant', pass: '123', restaurants: [r.name] });
+            }
+        });
+
+        function saveDB() {
+            localStorage.setItem('naif_system_db_v2', JSON.stringify(db));
+            fbDb.ref('naif_system_db_v2').set(db);
+        }
+
+        function syncWithFirebaseNow() {
+            fbDb.ref('naif_system_db_v2').once('value').then((snapshot) => {
+                const val = snapshot.val();
+                if (val) {
+                    db = val;
+                    localStorage.setItem('naif_system_db_v2', JSON.stringify(db));
+                    if (currentUser) {
+                        setupUserPermissionsUI();
+                        loadDailyData();
+                    }
+                    showModal('تزامنت البيانات', 'تم المزامنة والنسخ الاحتياطي مع Firebase بنجاح.', 'fas fa-check-circle text-emerald-600');
+                }
+            });
+        }
+
+        function logAudit(user, action, details) {
+            db.auditLogs.unshift({
+                date: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                user: user,
+                action: action,
+                details: details
+            });
+            if (db.auditLogs.length > 3000) db.auditLogs = db.auditLogs.slice(0, 3000);
+            saveDB();
+        }
+
+        function showModal(title, message, iconClass = 'fas fa-info-circle text-naifRed') {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById('modalIcon').innerHTML = `<i class="${iconClass}"></i>`;
+            document.getElementById('customModal').classList.remove('hidden');
+        }
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+
+        let currentUser = null;
+
+        window.onload = function() {
+            fbDb.ref('naif_system_db_v2').on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val) {
+                    db = val;
+                    localStorage.setItem('naif_system_db_v2', JSON.stringify(db));
+                    if (currentUser) {
+                        populateRestaurantDropdowns();
+                        loadDailyData();
+                    }
+                }
+            });
+
+            populateLoginUsers();
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('activeDateInput').value = todayStr;
+            document.getElementById('reportMonthPicker').value = todayStr.substring(0, 7);
+        };
+
+        function populateLoginUsers() {
+            const select = document.getElementById('loginUserSelect');
+            select.innerHTML = '';
+            db.users.forEach(u => {
+                select.innerHTML += `<option value="${u.username}">${u.username} (${getRoleDisplayName(u.role)})</option>`;
+            });
+        }
+
+        function filterLoginUsers() {
+            const query = document.getElementById('loginUserSearchInput').value.toLowerCase();
+            const select = document.getElementById('loginUserSelect');
+            select.innerHTML = '';
+            db.users.filter(u => u.username.toLowerCase().includes(query)).forEach(u => {
+                select.innerHTML += `<option value="${u.username}">${u.username} (${getRoleDisplayName(u.role)})</option>`;
+            });
+        }
+
+        function getRoleDisplayName(role) {
+            switch(role) {
+                case 'sysAdmin': return 'مدير النظام (ياسر الخطيب)';
+                case 'financeAdmin': return 'المدير المالي والإداري';
+                case 'hrManager': return 'مسؤول HR (انتصار هادي)';
+                case 'hrStaff': return 'كادر HR';
+                case 'opsManager': return 'مدير تشغيل';
+                case 'areaManager': return 'مشرف منطقة';
+                case 'restaurant': return 'مطعم فرعي';
+                default: return role;
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUserSelect').value;
+            const pass = document.getElementById('loginPassword').value;
+
+            const user = db.users.find(u => u.username === username);
+            if (!user || user.pass !== pass) {
+                showModal('خطأ في الدخول', 'اسم المستخدم أو كلمة المرور غير صحيحة.', 'fas fa-exclamation-triangle text-naifRed');
+                return;
+            }
+
+            currentUser = user;
+            logAudit(currentUser.username, 'تسجيل دخول', `تسجيل دخول بنجاح للبرنامج`);
+            
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+
+            setupUserPermissionsUI();
+            switchTab('dailyEntry');
+        }
+
+        function logout() {
+            if (currentUser) logAudit(currentUser.username, 'تسجيل خروج', 'خروج من النظام');
+            currentUser = null;
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('loginPassword').value = '';
+        }
+
+        function setupUserPermissionsUI() {
+            document.getElementById('navBrandTitle').innerText = `شركة نايف للأغذية - ${currentUser.username}`;
+            document.getElementById('navUserRoleBadge').innerText = getRoleDisplayName(currentUser.role);
+
+            const isSysAdmin = currentUser.role === 'sysAdmin';
+            const isFinanceOrHR = ['sysAdmin', 'financeAdmin', 'hrManager'].includes(currentUser.role);
+
+            if (isFinanceOrHR || currentUser.role === 'hrStaff') {
+                document.getElementById('tabBtn-settings').classList.remove('hidden');
+            } else {
+                document.getElementById('tabBtn-settings').classList.add('hidden');
+            }
+
+            if (isSysAdmin) {
+                document.querySelectorAll('.sysadmin-only').forEach(el => el.classList.remove('hidden'));
+            } else {
+                document.querySelectorAll('.sysadmin-only').forEach(el => el.classList.add('hidden'));
+            }
+
+            populateRestaurantDropdowns();
+        }
+
+        function populateRestaurantDropdowns() {
+            const activeSelect = document.getElementById('activeRestaurantSelect');
+            const reportSelect = document.getElementById('reportRestaurant');
+
+            activeSelect.innerHTML = '';
+            reportSelect.innerHTML = '<option value="all">جميع المطاعم المصرحة</option>';
+
+            let allowed = [];
+            if (currentUser.restaurants.includes('all')) {
+                allowed = db.restaurants.map(r => r.name);
+            } else if (currentUser.role === 'opsManager') {
+                allowed = db.restaurants.filter(r => r.opsManager === currentUser.username).map(r => r.name);
+            } else if (currentUser.role === 'areaManager') {
+                allowed = db.restaurants.filter(r => r.areaManager === currentUser.username).map(r => r.name);
+            } else {
+                allowed = currentUser.restaurants;
+            }
+
+            allowed.forEach(rName => {
+                activeSelect.innerHTML += `<option value="${rName}">${rName}</option>`;
+                reportSelect.innerHTML += `<option value="${rName}">${rName}</option>`;
+            });
+
+            if (allowed.length === 0) {
+                activeSelect.innerHTML = '<option value="">لا توجد مطاعم مسندة</option>';
+            }
+        }
+
+        function filterActiveRestaurants() {
+            const query = document.getElementById('activeRestaurantSearchInput').value.toLowerCase();
+            const select = document.getElementById('activeRestaurantSelect');
+            Array.from(select.options).forEach(opt => {
+                opt.style.display = opt.text.toLowerCase().includes(query) ? '' : 'none';
+            });
+        }
+
+        function filterReportRestaurants() {
+            const query = document.getElementById('reportRestaurantSearchInput').value.toLowerCase();
+            const select = document.getElementById('reportRestaurant');
+            Array.from(select.options).forEach(opt => {
+                opt.style.display = opt.text.toLowerCase().includes(query) ? '' : 'none';
+            });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('bg-naifRed', 'text-white', 'shadow-md');
+                el.classList.add('text-gray-300', 'hover:bg-gray-800');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            const btn = document.getElementById(`tabBtn-${tabId}`);
+            btn.classList.remove('text-gray-300', 'hover:bg-gray-800');
+            btn.classList.add('bg-naifRed', 'text-white', 'shadow-md');
+
+            if (tabId === 'dailyEntry') loadDailyData();
+            if (tabId === 'settings') renderSettingsPage();
+            if (tabId === 'auditLogs') renderAuditLogs();
+            if (tabId === 'passwordsPage') renderPasswordsPage();
+        }
+
+        // --- TAB 1: Daily Operations, Overtime & Focus Navigation ---
+        function loadDailyData() {
+            const restName = document.getElementById('activeRestaurantSelect').value;
+            const dateStr = document.getElementById('activeDateInput').value;
+            if (!restName || !dateStr) return;
+
+            const monthKey = `${restName}_${dateStr.substring(0, 7)}`;
+            const fixedTarget = db.monthlyTargets[monthKey] || '';
+
+            const dayKey = `${restName}_${dateStr}`;
+            const dayRecord = db.dailyRecords[dayKey] || { sales: '', attendance: {} };
+
+            document.getElementById('inputDailySales').value = dayRecord.sales !== undefined ? dayRecord.sales : '';
+            document.getElementById('inputMonthlyTarget').value = fixedTarget;
+
+            const tbody = document.getElementById('employeesAttendanceTableBody');
+            tbody.innerHTML = '';
+
+            db.employees.forEach((emp, index) => {
+                const empDay = dayRecord.attendance[emp.empId] || { status: 'حاضر', workHours: 8, overtimeHours: '' };
+                const calc = calculateOvertimeAndSalary(emp, empDay.status, empDay.workHours, empDay.overtimeHours, dateStr);
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-red-50/50 transition" data-empid="${emp.empId}">
+                        <td class="p-3 border-b font-mono">${emp.empId}</td>
+                        <td class="p-3 border-b font-bold text-gray-900">${emp.name}</td>
+                        <td class="p-3 border-b font-mono">${emp.basicSalary}</td>
+                        <td class="p-3 border-b font-mono">${emp.allowances}</td>
+                        <td class="p-3 border-b">
+                            <select class="emp-status grid-nav px-2 py-1 border rounded-lg text-xs bg-white font-bold" data-row="${index}" data-col="0" onchange="updateRowCalculation(this)">
+                                <option value="حاضر" ${empDay.status === 'حاضر' ? 'selected' : ''}>حاضر</option>
+                                <option value="غائب" ${empDay.status === 'غائب' ? 'selected' : ''}>غائب</option>
+                                <option value="إجازة" ${empDay.status === 'إجازة' ? 'selected' : ''}>إجازة</option>
+                            </select>
+                        </td>
+                        <td class="p-3 border-b">
+                            <input type="number" value="${empDay.workHours !== undefined ? empDay.workHours : ''}" class="emp-workhours grid-nav w-20 px-2 py-1 border rounded-lg text-xs font-mono" data-row="${index}" data-col="1" oninput="updateRowCalculation(this)">
+                        </td>
+                        <td class="p-3 border-b">
+                            <input type="number" step="0.5" min="0" max="3" value="${empDay.overtimeHours !== undefined ? empDay.overtimeHours : ''}" ${empDay.status === 'غائب' ? 'disabled' : ''} class="emp-overtime grid-nav w-20 px-2 py-1 border rounded-lg text-xs font-mono" data-row="${index}" data-col="2" oninput="updateRowCalculation(this)">
+                        </td>
+                        <td class="p-3 border-b font-mono text-naifRed font-bold"><span class="overtime-val">${calc.overtimePay.toFixed(3)}</span></td>
+                        <td class="p-3 border-b font-mono text-emerald-700 font-bold"><span class="total-val">${calc.totalDayPay.toFixed(3)}</span></td>
+                    </tr>
+                `;
+            });
+
+            attachGridKeyboardNavigation();
+            calculateKPIs();
+        }
+
+        // Calculation Rules: (Basic / 30 / 8) * overtimeHours * multiplier
+        function calculateOvertimeAndSalary(emp, status, workHours, overtimeHours, dateStr) {
+            if (status !== 'حاضر') return { overtimePay: 0, totalDayPay: 0, actualWorkHours: 0 };
+
+            const dateObj = new Date(dateStr);
+            const isFriday = (dateObj.getDay() === 5);
+            const isHoliday = db.holidays.includes(dateStr);
+
+            let multiplier = 1.250;
+            if (isHoliday) multiplier = 2.000;
+            else if (isFriday) multiplier = 1.500;
+
+            const overtimeNum = Math.min(Math.max(0, parseFloat(overtimeHours) || 0), 3);
+            const hourlyRate = (emp.basicSalary / 30) / 8;
+            const overtimePay = hourlyRate * overtimeNum * multiplier;
+
+            const dailyBasicShare = emp.basicSalary / 30;
+            const dailyAllowanceShare = emp.allowances / 30;
+            const totalDayPay = dailyBasicShare + dailyAllowanceShare + overtimePay;
+
+            const actualWork = parseFloat(workHours) || 8;
+
+            return { overtimePay, totalDayPay, actualWorkHours: actualWork };
+        }
+
+        function updateRowCalculation(element) {
+            const tr = element.closest('tr');
+            const empId = tr.getAttribute('data-empid');
+            const emp = db.employees.find(e => e.empId === empId);
+            const status = tr.querySelector('.emp-status').value;
+            const otInput = tr.querySelector('.emp-overtime');
+
+            if (status === 'غائب') {
+                otInput.value = '';
+                otInput.disabled = true;
+            } else {
+                otInput.disabled = false;
+            }
+
+            const workHours = tr.querySelector('.emp-workhours').value;
+            const overtimeHours = otInput.value;
+            const dateStr = document.getElementById('activeDateInput').value;
+
+            const calc = calculateOvertimeAndSalary(emp, status, workHours, overtimeHours, dateStr);
+            tr.querySelector('.overtime-val').innerText = calc.overtimePay.toFixed(3);
+            tr.querySelector('.total-val').innerText = calc.totalDayPay.toFixed(3);
+
+            calculateKPIs();
+        }
+
+        function attachGridKeyboardNavigation() {
+            const inputs = document.querySelectorAll('.grid-nav');
+            inputs.forEach(input => {
+                input.addEventListener('keydown', function(e) {
+                    const row = parseInt(this.getAttribute('data-row'));
+                    const col = parseInt(this.getAttribute('data-col'));
+
+                    let targetRow = row;
+                    let targetCol = col;
+
+                    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+                        e.preventDefault();
+                        targetRow = row + 1;
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        targetRow = row - 1;
+                    } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        targetCol = col - 1;
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        targetCol = col + 1;
+                    }
+
+                    const nextElement = document.querySelector(`.grid-nav[data-row="${targetRow}"][data-col="${targetCol}"]`);
+                    if (nextElement) {
+                        nextElement.focus();
+                        if (nextElement.select) nextElement.select();
+                    }
+                });
+            });
+        }
+
+        function calculateKPIs() {
+            const sales = parseFloat(document.getElementById('inputDailySales').value) || 0;
+            const target = parseFloat(document.getElementById('inputMonthlyTarget').value) || 0;
+            const dateStr = document.getElementById('activeDateInput').value;
+
+            let daysInMonth = 30;
+            if (dateStr) {
+                const parts = dateStr.split('-');
+                daysInMonth = new Date(parts[0], parts[1], 0).getDate();
+            }
+
+            const avgDailyTarget = target / daysInMonth;
+            const diffTarget = sales - avgDailyTarget;
+            const progressRatio = avgDailyTarget > 0 ? (sales / avgDailyTarget) * 100 : 0;
+
+            let totalDailySalaries = 0;
+            let totalWorkHoursSum = 0;
+
+            document.querySelectorAll('#employeesAttendanceTableBody tr').forEach(tr => {
+                const totalVal = parseFloat(tr.querySelector('.total-val').innerText) || 0;
+                const status = tr.querySelector('.emp-status').value;
+                const hours = parseFloat(tr.querySelector('.emp-workhours').value) || 0;
+
+                totalDailySalaries += totalVal;
+                if (status === 'حاضر') totalWorkHoursSum += hours;
+            });
+
+            const salaryPercentage = sales > 0 ? (totalDailySalaries / sales) * 100 : 0;
+            const productivityRate = totalWorkHoursSum > 0 ? (sales / totalWorkHoursSum) : 0;
+
+            document.getElementById('kpiDailySales').innerText = sales.toFixed(3);
+            document.getElementById('kpiTargetProgress').innerText = progressRatio.toFixed(1) + '%';
+            document.getElementById('kpiAvgTarget').innerText = avgDailyTarget.toFixed(3);
+            document.getElementById('kpiDiffTarget').innerText = (diffTarget >= 0 ? '+' : '') + diffTarget.toFixed(3);
+            document.getElementById('kpiTotalDailySalaries').innerText = totalDailySalaries.toFixed(3);
+            document.getElementById('kpiSalaryPercentage').innerText = salaryPercentage.toFixed(1) + '%';
+            document.getElementById('kpiProductivityRate').innerText = productivityRate.toFixed(3);
+        }
+
+        function saveDailySalesAndTarget() {
+            const restName = document.getElementById('activeRestaurantSelect').value;
+            const dateStr = document.getElementById('activeDateInput').value;
+            if (!restName || !dateStr) return;
+
+            const monthKey = `${restName}_${dateStr.substring(0, 7)}`;
+            const targetVal = parseFloat(document.getElementById('inputMonthlyTarget').value) || 0;
+            db.monthlyTargets[monthKey] = targetVal;
+
+            saveAttendanceData(true);
+        }
+
+        function saveAttendanceData(showMsg = true) {
+            const restName = document.getElementById('activeRestaurantSelect').value;
+            const dateStr = document.getElementById('activeDateInput').value;
+            if (!restName || !dateStr) return;
+
+            const dayKey = `${restName}_${dateStr}`;
+            const salesVal = parseFloat(document.getElementById('inputDailySales').value) || 0;
+
+            const attendanceObj = {};
+            document.querySelectorAll('#employeesAttendanceTableBody tr').forEach(tr => {
+                const empId = tr.getAttribute('data-empid');
+                const status = tr.querySelector('.emp-status').value;
+                const workHours = tr.querySelector('.emp-workhours').value;
+                const overtimeHours = tr.querySelector('.emp-overtime').value;
+                attendanceObj[empId] = { status, workHours, overtimeHours };
+            });
+
+            db.dailyRecords[dayKey] = {
+                sales: salesVal,
+                attendance: attendanceObj
+            };
+
+            saveDB();
+            logAudit(currentUser.username, 'حفظ دوام يومي', `حفظ مطعم ${restName} لتاريخ ${dateStr}`);
+            if (showMsg) showModal('تم الحفظ بنجاح', 'تم حفظ البيانات وتزامنت مع Firebase بنجاح.', 'fas fa-check-circle text-emerald-600');
+        }
+
+        // --- TAB 2: Expanded Monthly Detailed Report Generator ---
+        function generateReportPreview() {
+            const restName = document.getElementById('reportRestaurant').value;
+            const monthStr = document.getElementById('reportMonthPicker').value; // YYYY-MM
+            const purpose = document.getElementById('reportPurpose').value || 'تقرير أداء الدوام والإضافي الشهري';
+
+            if (!monthStr) {
+                showModal('تنبيه', 'يرجى تحديد الشهر والسنة للتقرير.', 'fas fa-exclamation-triangle text-amber-600');
+                return;
+            }
+
+            const year = parseInt(monthStr.split('-')[0]);
+            const month = parseInt(monthStr.split('-')[1]);
+            const daysInMonth = new Date(year, month, 0).getDate();
+
+            document.getElementById('reportPreviewContainer').classList.remove('hidden');
+            document.getElementById('reportTitleHeader').innerText = `شركة نايف للأغذية - التقرير الشهري لمطعم (${restName === 'all' ? 'جميع المطاعم المصرحة' : restName})`;
+            document.getElementById('reportSubtitleInfo').innerText = `الشهر: ${monthStr} | الغرض: ${purpose}`;
+
+            let daysHeaderCells = '';
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayFormatted = i < 10 ? `0${i}` : `${i}`;
+                const dateStr = `${monthStr}-${dayFormatted}`;
+                const dObj = new Date(dateStr);
+                const isFriday = (dObj.getDay() === 5);
+                const isHoliday = db.holidays.includes(dateStr);
+
+                let dayClass = 'border-gray-700';
+                if (isHoliday) dayClass = 'bg-red-800 text-white font-black';
+                else if (isFriday) dayClass = 'bg-sky-700 text-white font-black';
+
+                daysHeaderCells += `<th class="p-1 border text-center min-w-[28px] ${dayClass}">${i}</th>`;
+            }
+
+            let tableHtml = `
+                <table class="w-full text-right border-collapse text-xs border border-gray-300">
+                    <thead>
+                        <tr class="bg-naifDark text-white font-bold border-b">
+                            <th class="p-2 border border-gray-700 min-w-[140px] sticky right-0 bg-naifDark z-10">اسم الموظف</th>
+                            <th class="p-2 border border-gray-700">الرقم</th>
+                            ${daysHeaderCells}
+                            <th class="p-2 border border-gray-700 font-black bg-naifRed">ساعات عمل</th>
+                            <th class="p-2 border border-gray-700 font-black bg-naifRed">ساعات إضافي</th>
+                            <th class="p-2 border border-gray-700 font-black bg-naifRed">قيمة الإضافي</th>
+                            <th class="p-2 border border-gray-700 font-black bg-emerald-800">إجمالي الاستحقاق</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+            `;
+
+            let grandTotalSales = 0;
+            let grandTotalSalaries = 0;
+            let totalWorkHoursMonthSum = 0;
+
+            db.employees.forEach(emp => {
+                let empTotalWorkHours = 0;
+                let empTotalOvertimeHours = 0;
+                let empTotalOvertimePay = 0;
+                let empTotalPay = 0;
+
+                let daysCellsHtml = '';
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dayFormatted = d < 10 ? `0${d}` : `${d}`;
+                    const dateStr = `${monthStr}-${dayFormatted}`;
+                    const dObj = new Date(dateStr);
+                    const isFriday = (dObj.getDay() === 5);
+                    const isHoliday = db.holidays.includes(dateStr);
+
+                    let dayCellClass = '';
+                    if (isHoliday) dayCellClass = 'day-holiday-cell';
+                    else if (isFriday) dayCellClass = 'day-friday-cell';
+
+                    let dayStatus = '-';
+
+                    let restaurantsList = restName === 'all' ? db.restaurants.map(r => r.name) : [restName];
+                    
+                    restaurantsList.forEach(r => {
+                        const recKey = `${r}_${dateStr}`;
+                        const rec = db.dailyRecords[recKey];
+                        if (rec) {
+                            if (rec.sales) grandTotalSales += parseFloat(rec.sales) || 0;
+
+                            if (rec.attendance && rec.attendance[emp.empId]) {
+                                const att = rec.attendance[emp.empId];
+                                const calc = calculateOvertimeAndSalary(emp, att.status, att.workHours, att.overtimeHours, dateStr);
+                                
+                                if (att.status === 'حاضر') {
+                                    dayStatus = att.overtimeHours > 0 ? `+${att.overtimeHours}` : 'ح';
+                                    empTotalWorkHours += calc.actualWorkHours;
+                                    empTotalOvertimeHours += parseFloat(att.overtimeHours) || 0;
+                                    empTotalOvertimePay += calc.overtimePay;
+                                    empTotalPay += calc.totalDayPay;
+                                    totalWorkHoursMonthSum += calc.actualWorkHours;
+                                } else if (att.status === 'غائب') {
+                                    dayStatus = 'غ';
+                                } else if (att.status === 'إجازة') {
+                                    dayStatus = 'ج';
+                                }
+                            }
+                        }
+                    });
+
+                    daysCellsHtml += `<td class="p-1 border text-center font-mono text-[10px] ${dayCellClass}">${dayStatus}</td>`;
+                }
+
+                grandTotalSalaries += empTotalPay;
+
+                tableHtml += `
+                    <tr class="hover:bg-gray-50 font-semibold">
+                        <td class="p-2 border font-bold text-gray-900 sticky right-0 bg-white z-10">${emp.name}</td>
+                        <td class="p-2 border font-mono">${emp.empId}</td>
+                        ${daysCellsHtml}
+                        <td class="p-2 border font-mono font-bold">${empTotalWorkHours}</td>
+                        <td class="p-2 border font-mono font-bold text-naifRed">${empTotalOvertimeHours}</td>
+                        <td class="p-2 border font-mono font-bold text-naifRed">${empTotalOvertimePay.toFixed(3)}</td>
+                        <td class="p-2 border font-mono font-bold text-emerald-700">${empTotalPay.toFixed(3)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += `</tbody></table>`;
+
+            // Calculate Monthly Financial Performance Summary Footer
+            let monthTargetSum = 0;
+            if (restName === 'all') {
+                db.restaurants.forEach(r => {
+                    monthTargetSum += (db.monthlyTargets[`${r.name}_${monthStr}`] || 0);
+                });
+            } else {
+                monthTargetSum = db.monthlyTargets[`${restName}_${monthStr}`] || 0;
+            }
+
+            const diffTarget = grandTotalSales - monthTargetSum;
+            const targetRatio = monthTargetSum > 0 ? (grandTotalSales / monthTargetSum) * 100 : 0;
+            const salaryRatio = grandTotalSales > 0 ? (grandTotalSalaries / grandTotalSales) * 100 : 0;
+            const productivityRate = totalWorkHoursMonthSum > 0 ? (grandTotalSales / totalWorkHoursMonthSum) : 0;
+
+            const summaryHtml = `
+                <div class="bg-gray-900 text-white rounded-2xl p-6 shadow-md border-t-4 border-naifRed space-y-4">
+                    <h4 class="text-base font-black text-naifRed flex items-center gap-2"><i class="fas fa-chart-line"></i> ملخص أداء المبيعات والإنتاجية بالفترة</h4>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-semibold">
+                        <div class="bg-gray-800 p-3 rounded-xl border border-gray-700">
+                            <span class="text-gray-400 block mb-1">إجمالي المبيعات خلال الفترة</span>
+                            <span class="text-lg font-black text-emerald-400 font-mono">${grandTotalSales.toFixed(3)}</span>
+                        </div>
+                        <div class="bg-gray-800 p-3 rounded-xl border border-gray-700">
+                            <span class="text-gray-400 block mb-1">الهدف المالي والتراكمي</span>
+                            <span class="text-lg font-black text-sky-400 font-mono">${monthTargetSum.toFixed(3)}</span>
+                        </div>
+                        <div class="bg-gray-800 p-3 rounded-xl border border-gray-700">
+                            <span class="text-gray-400 block mb-1">نسبة تحقيق الهدف والفرق</span>
+                            <span class="text-lg font-black text-amber-400 font-mono">${targetRatio.toFixed(1)}% (${diffTarget >= 0 ? '+' : ''}${diffTarget.toFixed(3)})</span>
+                        </div>
+                        <div class="bg-gray-800 p-3 rounded-xl border border-gray-700">
+                            <span class="text-gray-400 block mb-1">نسبة الرواتب ومعدل الإنتاجية</span>
+                            <span class="text-lg font-black text-purple-400 font-mono">${salaryRatio.toFixed(1)}% (${productivityRate.toFixed(3)} د.ك/س)</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('reportTableWrapper').innerHTML = tableHtml + summaryHtml;
+            logAudit(currentUser.username, 'معاينة التقرير الشهري', `توليد التقرير لشهر ${monthStr} لمطعم ${restName}`);
+        }
+
+        function exportReportExcel() {
+            const table = document.querySelector('#reportTableWrapper table');
+            if (!table) return;
+            const wb = XLSX.utils.table_to_book(table, { sheet: "التقرير الشهري" });
+            XLSX.writeFile(wb, `Naif_Monthly_Report_${document.getElementById('reportMonthPicker').value}.xlsx`);
+            logAudit(currentUser.username, 'تصدير XLSX', 'تصدير التقرير الشهري بنجاح');
+        }
+
+        async function exportReportPDF() {
+            const container = document.createElement('div');
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '-9999px';
+            container.style.width = '1120px';
+            container.style.background = '#ffffff';
+            container.style.direction = 'rtl';
+            document.body.appendChild(container);
+
+            let currentPage;
+            const safeHeight = 750;
+
+            function createPage() {
+                const p = document.createElement('div');
+                p.style.width = '1120px';
+                p.style.padding = '25px';
+                p.style.background = '#ffffff';
+                p.style.boxSizing = 'border-box';
+                container.appendChild(p);
+                return p;
+            }
+
+            currentPage = createPage();
+            currentPage.innerHTML = `
+                <div style="text-align:center; border-bottom: 3px solid #D32F2F; padding-bottom: 10px; margin-bottom: 15px;">
+                    <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" style="height: 50px; margin: 0 auto 5px auto;">
+                    <h2 style="font-size: 18px; font-weight: bold; margin: 0; color: #1A1A1A;">شركة نايف للأغذية - التقرير الشهري للدوام والإضافي</h2>
+                    <p style="font-size: 12px; color: #555; margin: 3px 0 0 0;">${document.getElementById('reportSubtitleInfo').innerText}</p>
+                </div>
+            `;
+
+            const sourceTable = document.querySelector('#reportTableWrapper table');
+            if (!sourceTable) return;
+
+            const tableWrap = document.createElement('div');
+            const tableHeaderHtml = sourceTable.querySelector('thead').outerHTML;
+            tableWrap.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:10px; text-align:right;" border="1">${tableHeaderHtml}<tbody></tbody></table>`;
+            currentPage.appendChild(tableWrap);
+
+            let tbody = tableWrap.querySelector('tbody');
+            const rows = Array.from(sourceTable.querySelectorAll('tbody tr'));
+
+            rows.forEach(row => {
+                const tr = row.cloneNode(true);
+                tbody.appendChild(tr);
+
+                if (currentPage.offsetHeight > safeHeight) {
+                    tbody.removeChild(tr);
+                    currentPage = createPage();
+                    const newTableWrap = document.createElement('div');
+                    newTableWrap.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:10px; text-align:right;" border="1">${tableHeaderHtml}<tbody></tbody></table>`;
+                    currentPage.appendChild(newTableWrap);
+                    tbody = newTableWrap.querySelector('tbody');
+                    tbody.appendChild(tr);
+                }
+            });
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('l', 'pt', 'a4');
+                const imgWidth = pdf.internal.pageSize.getWidth();
+                const pages = Array.from(container.children);
+
+                for (let i = 0; i < pages.length; i++) {
+                    const canvas = await html2canvas(pages[i], { scale: 2 });
+                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                    if (i > 0) pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+                }
+
+                pdf.save(`Naif_Report_${document.getElementById('reportMonthPicker').value}.pdf`);
+                logAudit(currentUser.username, 'تصدير PDF', 'تصدير تقرير PDF المباشر بنجاح');
+            } catch (err) {
+                console.error(err);
+            } finally {
+                document.body.removeChild(container);
+            }
+        }
+
+        // --- TAB 3: Settings Page & File Imports ---
+        function renderSettingsPage() {
+            renderHolidaysList();
+            renderUsersManagementTable();
+        }
+
+        function importEmployeesExcel() {
+            const fileInput = document.getElementById('excelEmployeesFile');
+            if (fileInput.files.length === 0) {
+                showModal('تنبيه', 'يرجى اختيار ملف الموظفين أولاً.', 'fas fa-exclamation-triangle text-amber-600');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(worksheet);
+
+                db.employees = json.map(row => ({
+                    empId: String(row['الرقم الوظيفي'] || row['empId'] || Math.floor(Math.random() * 1000)),
+                    name: row['اسم الموظف'] || row['name'] || 'موظف جديد',
+                    basicSalary: parseFloat(row['الراتب الأساسي'] || row['basicSalary'] || 130),
+                    allowances: parseFloat(row['البدلات'] || row['allowances'] || 0)
+                }));
+
+                saveDB();
+                logAudit(currentUser.username, 'استيراد موظفين', `استيراد ${db.employees.length} موظف من Excel`);
+                showModal('تم الاستيراد', `تم استيراد ${db.employees.length} موظف بنجاح.`, 'fas fa-check-circle text-emerald-600');
+            };
+            reader.readAsArrayBuffer(fileInput.files[0]);
+        }
+
+        function importManagersExcel() {
+            const fileInput = document.getElementById('excelManagersFile');
+            if (fileInput.files.length === 0) {
+                showModal('تنبيه', 'يرجى اختيار ملف المطاعم والمدراء أولاً.', 'fas fa-exclamation-triangle text-amber-600');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(worksheet);
+
+                db.restaurants = json.map(row => ({
+                    name: row['اسم المطعم'] || row['restaurant'] || 'مطعم فرعي',
+                    areaManager: row['مدير المنطقة'] || row['areaManager'] || 'مشرف غير محدد',
+                    opsManager: row['مدير التشغيل'] || row['opsManager'] || 'طارق بيومي'
+                }));
+
+                saveDB();
+                logAudit(currentUser.username, 'استيراد مطاعم ومدراء', `استيراد ${db.restaurants.length} مطعم من Excel`);
+                showModal('تم الاستيراد', `تم استيراد ${db.restaurants.length} مطعم بنجاح.`, 'fas fa-check-circle text-emerald-600');
+                populateRestaurantDropdowns();
+            };
+            reader.readAsArrayBuffer(fileInput.files[0]);
+        }
+
+        function addHolidayDate() {
+            const input = document.getElementById('newHolidayInput').value;
+            if (!input) return;
+            if (!db.holidays.includes(input)) {
+                db.holidays.push(input);
+                saveDB();
+                logAudit(currentUser.username, 'إضافة عطلة', `إضافة يوم عطلة: ${input}`);
+                renderHolidaysList();
+                document.getElementById('newHolidayInput').value = '';
+            }
+        }
+
+        function removeHolidayDate(dateStr) {
+            db.holidays = db.holidays.filter(d => d !== dateStr);
+            saveDB();
+            logAudit(currentUser.username, 'حذف عطلة', `حذف يوم عطلة: ${dateStr}`);
+            renderHolidaysList();
+        }
+
+        function renderHolidaysList() {
+            const container = document.getElementById('holidaysListContainer');
+            container.innerHTML = '';
+            db.holidays.forEach(h => {
+                container.innerHTML += `
+                    <span class="bg-amber-100 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-2 border border-amber-200">
+                        ${h} <button onclick="removeHolidayDate('${h}')" class="text-naifRed hover:text-red-800"><i class="fas fa-times"></i></button>
+                    </span>
+                `;
+            });
+        }
+
+        function renderUsersManagementTable() {
+            const tbody = document.getElementById('usersListTableBody');
+            tbody.innerHTML = '';
+            db.users.forEach(u => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 border-b font-bold text-gray-900">${u.username}</td>
+                        <td class="p-3 border-b"><span class="bg-red-50 text-naifRed text-xs px-2.5 py-1 rounded-full font-bold border border-red-100">${getRoleDisplayName(u.role)}</span></td>
+                        <td class="p-3 border-b text-gray-600">${u.restaurants.join(', ')}</td>
+                        <td class="p-3 border-b">
+                            <button onclick="editUserAssignment('${u.username}')" class="bg-gray-100 text-gray-800 hover:bg-gray-200 text-xs px-3 py-1.5 rounded-lg font-bold transition">تعديل المطاعم</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function editUserAssignment(username) {
+            const user = db.users.find(u => u.username === username);
+            if (!user) return;
+
+            const newRest = prompt(`تعديل المطاعم المصرحة لـ ${username} (مفصولة بفاصلة أو اكتب all لكافة المطاعم):`, user.restaurants.join(', '));
+            if (newRest !== null) {
+                user.restaurants = newRest.split(',').map(s => s.trim());
+                saveDB();
+                logAudit(currentUser.username, 'تعديل مطاعم مستخدم', `تحديث المطاعم للمستخدم ${username}`);
+                renderUsersManagementTable();
+                showModal('تم التعديل', 'تم تحديث مطاعم المستخدم بنجاح.', 'fas fa-check-circle text-emerald-600');
+            }
+        }
+
+        // --- TAB 4: Audit Logs (SysAdmin Only) ---
+        function renderAuditLogs() {
+            const tbody = document.getElementById('auditLogsTableBody');
+            const search = document.getElementById('auditSearchInput').value.toLowerCase();
+            tbody.innerHTML = '';
+
+            let filtered = db.auditLogs;
+            if (search) {
+                filtered = db.auditLogs.filter(l => l.user.toLowerCase().includes(search) || l.action.toLowerCase().includes(search) || l.details.toLowerCase().includes(search) || l.date.includes(search));
+            }
+
+            document.getElementById('auditLogCountIndicator').innerText = `إجمالي السجلات: ${db.auditLogs.length} (المعروض: ${filtered.length})`;
+
+            filtered.forEach(log => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 border-b text-gray-500">${log.date}</td>
+                        <td class="p-3 border-b font-bold text-gray-900">${log.user}</td>
+                        <td class="p-3 border-b text-naifRed font-bold">${log.action}</td>
+                        <td class="p-3 border-b text-gray-700">${log.details}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function sysAdminClearLogs() {
+            if (currentUser.role !== 'sysAdmin') {
+                showModal('مرفوض', 'مسح السجل مخصص فقط لمدير النظام (ياسر الخطيب).', 'fas fa-ban text-naifRed');
+                return;
+            }
+            db.auditLogs = [];
+            saveDB();
+            renderAuditLogs();
+            showModal('تم المسح', 'تم مسح سجل الحركات بالكامل.', 'fas fa-check-circle text-emerald-600');
+        }
+
+        // --- TAB 5: Passwords Management (SysAdmin Only) ---
+        function renderPasswordsPage() {
+            const tbody = document.getElementById('passwordsTableBody');
+            tbody.innerHTML = '';
+            db.users.forEach(u => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 border-b font-bold">${u.username}</td>
+                        <td class="p-3 border-b">${getRoleDisplayName(u.role)}</td>
+                        <td class="p-3 border-b font-mono font-bold text-naifRed">${u.pass}</td>
+                        <td class="p-3 border-b">
+                            <button onclick="sysAdminChangeUserPassword('${u.username}')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs px-3 py-1.5 rounded-lg font-bold transition">تغيير كلمة السر</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function sysAdminChangeUserPassword(username) {
+            const user = db.users.find(u => u.username === username);
+            if (!user) return;
+
+            const newPass = prompt(`أدخل كلمة المرور الجديدة لـ ${username}:`);
+            if (newPass) {
+                user.pass = newPass;
+                saveDB();
+                logAudit(currentUser.username, 'تغيير كلمة سر', `تغيير كلمة سر المستخدم ${username}`);
+                renderPasswordsPage();
+                showModal('تم التغيير', `تم تغيير كلمة مرور ${username} بنجاح.`, 'fas fa-check-circle text-emerald-600');
+            }
+        }
+
+        // --- Change Password Modal Logic ---
+        function openChangePasswordModal() {
+            document.getElementById('oldPassInput').value = '';
+            document.getElementById('newPassInput').value = '';
+            document.getElementById('changePasswordModal').classList.remove('hidden');
+        }
+
+        function submitChangePassword(e) {
+            e.preventDefault();
+            const oldPass = document.getElementById('oldPassInput').value;
+            const newPass = document.getElementById('newPassInput').value;
+
+            if (currentUser.pass !== oldPass) {
+                showModal('خطأ', 'كلمة المرور القديمة غير صحيحة.', 'fas fa-exclamation-triangle text-naifRed');
+                return;
+            }
+
+            currentUser.pass = newPass;
+            const u = db.users.find(x => x.username === currentUser.username);
+            if (u) u.pass = newPass;
+
+            saveDB();
+            logAudit(currentUser.username, 'تغيير كلمة سر شخصية', 'تم تغيير كلمة المرور الذاتية');
+            document.getElementById('changePasswordModal').classList.add('hidden');
+            showModal('تم بنجاح', 'تم تحديث كلمة المرور الخاصة بك بنجاح.', 'fas fa-check-circle text-emerald-600');
+        }
+    </script>
+</body>
+</html>
