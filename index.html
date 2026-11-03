@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SheetJS (XLSX) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- jsPDF & html2canvas for Smart Page Split Export -->
+    <!-- jsPDF & html2canvas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Firebase SDKs -->
@@ -39,17 +39,13 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
-        /* Disable Chrome, Safari, Edge, Firefox number input arrows */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
             -webkit-appearance: none; 
             margin: 0; 
         }
-        input[type=number] { 
-            -moz-appearance: textfield; 
-        }
+        input[type=number] { -moz-appearance: textfield; }
 
-        /* Developer Floating Signature Badge */
         .signature-card {
             position: fixed;
             bottom: 15px;
@@ -82,17 +78,13 @@
         .signature-card .name { font-size: 0.75rem; font-weight: 700; color: #0288D1; margin-bottom: 2px; }
         .signature-card .title { font-size: 0.6rem; color: #475569; font-weight: 600; }
 
-        /* Floating KPI animation */
-        .floating-kpi {
-            animation: kpiFloat 6s ease-in-out infinite;
-        }
+        .floating-kpi { animation: kpiFloat 6s ease-in-out infinite; }
         @keyframes kpiFloat {
             0% { transform: translateY(0px); }
             50% { transform: translateY(-5px); }
             100% { transform: translateY(0px); }
         }
 
-        /* Highlight days in report */
         .day-friday-cell { color: #0288D1 !important; font-weight: 700; background-color: #E0F2FE !important; }
         .day-holiday-cell { color: #D32F2F !important; font-weight: 700; background-color: #FFEBEE !important; }
 
@@ -103,13 +95,13 @@
 </head>
 <body class="text-gray-800 min-h-screen flex flex-col">
 
-    <!-- Developer Floating Badge -->
+    <!-- Developer Badge -->
     <a href="https://yasser-q8.github.io/myprofile/#" class="signature-card no-print" target="_blank" rel="noopener noreferrer">
         <div class="name">Yasser Elkhateeb</div>
         <div class="title">مطور البرنامج 67011143</div>
     </a>
 
-    <!-- Custom Modal Dialog (No alert/confirm) -->
+    <!-- Custom Modal -->
     <div id="customModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center transform transition-all border-t-8 border-naifRed">
             <div id="modalIcon" class="text-4xl mb-3 text-naifRed"><i class="fas fa-info-circle"></i></div>
@@ -130,12 +122,17 @@
                 <p class="text-xs font-bold text-naifRed mt-1 uppercase tracking-wider">نظام إدارة الدوام الإضافي والمبيعات - الكويت</p>
             </div>
             
+            <!-- رسالة الخطأ المباشرة عند تسجيل الدخول -->
+            <div id="loginErrorMsg" class="hidden mb-4 p-3 bg-red-100 border border-red-400 text-red-700 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-2">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>اسم المستخدم أو كلمة المرور غير صحيحة!</span>
+            </div>
+
             <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
                 <div class="relative">
                     <label class="block text-xs font-bold text-gray-700 mb-1">ابحث واختر اسم المستخدم / المطعم (بالحرف)</label>
                     <input type="text" id="loginUserSearchInput" placeholder="اكتب أول حروف للبحث..." oninput="filterLoginUsers()" autocomplete="off" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-naifRed focus:outline-none bg-gray-50 text-sm font-semibold">
                     <select id="loginUserSelect" class="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-naifRed focus:outline-none bg-white text-xs font-semibold" size="4" required>
-                        <!-- Dynamic options loaded via JS -->
                     </select>
                 </div>
                 <div>
@@ -187,7 +184,7 @@
                         <i class="fas fa-file-invoice"></i> التقرير الشهري الموسع
                     </button>
                     <button onclick="switchTab('settings')" id="tabBtn-settings" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:bg-gray-800 transition flex items-center gap-2 whitespace-nowrap admin-only hidden">
-                        <i class="fas fa-sliders-h"></i> الإعدادات الشاملة
+                        <i class="fas fa-sliders-h"></i> الإعدادات الشاملة والأهداف
                     </button>
                     <button onclick="switchTab('auditLogs')" id="tabBtn-auditLogs" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold text-gray-300 hover:bg-gray-800 transition flex items-center gap-2 whitespace-nowrap sysadmin-only hidden">
                         <i class="fas fa-history"></i> سجل الحركات (Audit Log)
@@ -204,7 +201,6 @@
 
             <!-- TAB 1: Daily Operations & Attendance -->
             <div id="tab-dailyEntry" class="tab-content active space-y-6">
-                <!-- Top Restaurant & Date Selector -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                     <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100">
                         <div>
@@ -216,7 +212,6 @@
                                 <label class="block text-xs font-bold text-gray-700 mb-1">بحث المطعم بالحرف:</label>
                                 <input type="text" id="activeRestaurantSearchInput" placeholder="بحث المطعم..." oninput="filterActiveRestaurants()" class="px-3 py-1.5 border rounded-xl font-semibold bg-gray-50 text-xs w-36 mb-1 block">
                                 <select id="activeRestaurantSelect" onchange="loadDailyData()" class="px-3 py-2 border rounded-xl font-bold bg-gray-50 text-xs focus:ring-2 focus:ring-naifRed">
-                                    <!-- Dynamic -->
                                 </select>
                             </div>
                             <div>
@@ -226,7 +221,7 @@
                         </div>
                     </div>
 
-                    <!-- Floating KPI Dashboard Statistics Cards -->
+                    <!-- Floating KPI Dashboard Cards -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                         <div class="floating-kpi bg-gradient-to-br from-red-50 to-orange-50 border border-red-200 p-4 rounded-2xl shadow-sm">
                             <span class="text-xs font-black text-naifRed block mb-1">مبيعات اليوم والهدف الشهري</span>
@@ -259,18 +254,18 @@
                         </div>
 
                         <div class="bg-white border-2 border-naifRed p-4 rounded-2xl shadow-sm flex flex-col justify-between">
-                            <span class="text-xs font-black text-naifRed block mb-1">تسجيل المبيعات وتثبيت الهدف</span>
+                            <span class="text-xs font-black text-naifRed block mb-1">إدخال مبيعات اليوم والهدف المعروض</span>
                             <div class="space-y-2">
                                 <div class="flex items-center gap-2">
                                     <input type="text" id="inputDailySales" placeholder="مبيعات اليوم" class="w-full px-2.5 py-1.5 text-xs border rounded-lg font-mono" oninput="calculateKPIs()">
-                                    <input type="text" id="inputMonthlyTarget" placeholder="هدف الشهر الثابت" class="w-full px-2.5 py-1.5 text-xs border rounded-lg font-mono" oninput="calculateKPIs()">
+                                    <input type="text" id="inputMonthlyTargetDisplay" readonly placeholder="الهدف الشهري" class="w-full px-2.5 py-1.5 text-xs border rounded-lg font-mono bg-gray-100 text-gray-600 font-bold" title="تعديل الهدف من شاشة الإعدادات والأهداف فقط">
                                 </div>
-                                <button onclick="saveDailySalesAndTarget()" class="w-full bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold py-1.5 rounded-lg transition shadow">تثبيت الهدف وحفظ المبيعات</button>
+                                <button onclick="saveDailySalesAndTarget()" class="w-full bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold py-1.5 rounded-lg transition shadow">حفظ المبيعات اليومية</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Attendance Grid Input Table -->
+                    <!-- Attendance Table -->
                     <div class="overflow-x-auto border border-gray-200 rounded-2xl">
                         <table class="w-full text-right border-collapse text-xs" id="attendanceGridTable">
                             <thead>
@@ -287,7 +282,6 @@
                                 </tr>
                             </thead>
                             <tbody id="employeesAttendanceTableBody" class="divide-y divide-gray-100 font-semibold">
-                                <!-- Dynamic rows -->
                             </tbody>
                         </table>
                     </div>
@@ -304,7 +298,7 @@
             <div id="tab-reports" class="tab-content space-y-6">
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                     <h3 class="text-xl font-black text-gray-900 mb-2"><i class="fas fa-file-invoice text-naifRed mr-2"></i> التقرير الشهري الموحد للموظفين والدوام</h3>
-                    <p class="text-xs text-gray-500 mb-6">تقرير تفصيلي يظهر فيه كل موظف مرة واحدة فقط وبجواره سجل الدوام والإضافي لكل أيام الشهر ومجموع الساعات والمبالغ مع الملخص المالي أسفل الجدول.</p>
+                    <p class="text-xs text-gray-500 mb-6">تقرير تفصيلي شامل يظهر فيه الموظفون مع سجلات الدوام اليومية والملخص المالي النهائي أسفل الجدول.</p>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-200">
                         <div>
@@ -335,44 +329,70 @@
                                 <p class="text-xs text-gray-500 font-semibold" id="reportSubtitleInfo">الفترة والغرض المحدد</p>
                             </div>
                             <div class="flex gap-2">
-                                <button onclick="exportReportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5"><i class="fas fa-file-excel"></i> تصدير XLSX</button>
-                                <button onclick="exportReportPDF()" class="bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5"><i class="fas fa-file-pdf"></i> تصدير PDF مباشر</button>
+                                <button onclick="exportReportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5"><i class="fas fa-file-excel"></i> تصدير XLSX متناسق</button>
+                                <button onclick="exportReportPDF()" class="bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5"><i class="fas fa-file-pdf"></i> تصدير PDF صفحة واحدة</button>
                             </div>
                         </div>
 
                         <div id="reportTableWrapper" class="overflow-x-auto space-y-6">
-                            <!-- Dynamic Table matching requirement: 1st Col Employee, Days Cols, Totals -->
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 3: Comprehensive Settings -->
+            <!-- TAB 3: Comprehensive Settings & Targets -->
             <div id="tab-settings" class="tab-content space-y-6">
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-8">
                     <div>
-                        <h3 class="text-xl font-black text-gray-900 mb-1"><i class="fas fa-sliders-h text-naifRed mr-2"></i> لوحة الإعدادات الشاملة والملفات</h3>
-                        <p class="text-xs text-gray-500">إدارة استيراد اكسل الموظفين والمدراء، العطل الرسمية الكويتية، وتعديل صلاحيات المطاعم.</p>
+                        <h3 class="text-xl font-black text-gray-900 mb-1"><i class="fas fa-sliders-h text-naifRed mr-2"></i> لوحة الإعدادات الشاملة وتثبيت الأهداف الشهرية</h3>
+                        <p class="text-xs text-gray-500">إدارة الأهداف الشهرية، استيراد الملفات، العطل الرسمية، والتصريح بالصلاحيات.</p>
+                    </div>
+
+                    <!-- Monthly Target Manager Section -->
+                    <div class="bg-red-50/60 p-6 rounded-2xl border-2 border-naifRed/30 space-y-4">
+                        <h4 class="font-black text-naifDarkRed text-sm flex items-center gap-2"><i class="fas fa-bullseye text-naifRed"></i> 1. تسجيل وتثبيت الهدف الشهري واليومي للمطاعم (بداية كل شهر)</h4>
+                        <p class="text-xs text-gray-600">يتم تحديد الهدف مرة واحدة هنا بداية كل شهر لمنع تعديله بالخطأ أثناء إدخال المبيعات اليومية.</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">اختر المطعم:</label>
+                                <select id="targetRestaurantSelect" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-bold" onchange="loadTargetForSelectedRest()">
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">اختر الشهر:</label>
+                                <input type="month" id="targetMonthPicker" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-bold" onchange="loadTargetForSelectedRest()">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-1">الهدف الشهري الإجمالي (د.ك):</label>
+                                <input type="number" step="0.001" id="monthlyTargetValueInput" placeholder="0.000" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-mono font-bold">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2">
+                            <div class="text-xs font-bold text-gray-700">الهدف اليومي المحسوب تلقائياً: <span id="calculatedDailyTargetBadge" class="text-naifRed font-mono font-black text-sm">0.000</span> د.ك/يوم</div>
+                            <button onclick="saveMonthlyTargetFromSettings()" class="bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold px-6 py-2.5 rounded-xl transition shadow">تثبيت الهدف الشهري واليومي</button>
+                        </div>
                     </div>
 
                     <!-- Import XLSX Section -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
                         <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200">
-                            <h4 class="font-black text-gray-800 text-xs mb-2"><i class="fas fa-file-excel text-emerald-600 mr-2"></i> 1. تحميل ملف الموظفين (XLSX)</h4>
+                            <h4 class="font-black text-gray-800 text-xs mb-2"><i class="fas fa-file-excel text-emerald-600 mr-2"></i> 2. تحميل ملف الموظفين (XLSX)</h4>
                             <p class="text-xs text-gray-500 mb-4">الأعمدة المطلوبة: (الرقم الوظيفي، اسم الموظف، الراتب الأساسي، البدلات)</p>
                             <input type="file" id="excelEmployeesFile" accept=".xlsx, .xls, .xlsm" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-naifRed hover:file:bg-red-100 mb-3">
                             <button onclick="importEmployeesExcel()" class="bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold px-4 py-2 rounded-xl transition">استيراد الموظفين</button>
                         </div>
 
                         <div class="bg-gray-50 p-5 rounded-2xl border border-gray-200">
-                            <h4 class="font-black text-gray-800 text-xs mb-2"><i class="fas fa-file-excel text-emerald-600 mr-2"></i> 2. تحميل ملف المطاعم والمدراء (XLSX)</h4>
+                            <h4 class="font-black text-gray-800 text-xs mb-2"><i class="fas fa-file-excel text-emerald-600 mr-2"></i> 3. تحميل ملف المطاعم والمدراء (XLSX)</h4>
                             <p class="text-xs text-gray-500 mb-4">الأعمدة المطلوبة: (اسم المطعم، مدير المنطقة، مدير التشغيل)</p>
                             <input type="file" id="excelManagersFile" accept=".xlsx, .xls, .xlsm" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-naifRed hover:file:bg-red-100 mb-3">
                             <button onclick="importManagersExcel()" class="bg-naifRed hover:bg-naifDarkRed text-white text-xs font-bold px-4 py-2 rounded-xl transition">استيراد المطاعم والمدراء</button>
                         </div>
                     </div>
 
-                    <!-- Official Holidays Definition (HR Manager / SysAdmin) -->
+                    <!-- Official Holidays Definition -->
                     <div class="pt-6 border-t border-gray-100">
                         <h4 class="font-black text-gray-800 text-xs mb-2"><i class="fas fa-calendar-star text-amber-600 mr-2"></i> أيام العطل الرسمية السنوية (مسؤول الـ HR)</h4>
                         <p class="text-xs text-gray-500 mb-3">حدد تواريخ العطل ليتم حساب الإضافي بنسبة (x2.000) تلقائياً.</p>
@@ -381,11 +401,10 @@
                             <button onclick="addHolidayDate()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition">إضافة عطلة</button>
                         </div>
                         <div id="holidaysListContainer" class="flex flex-wrap gap-2 mt-3">
-                            <!-- Dynamic Badges -->
                         </div>
                     </div>
 
-                    <!-- Users & Roles Display -->
+                    <!-- Users Table -->
                     <div class="pt-6 border-t border-gray-100">
                         <h4 class="font-black text-gray-800 text-xs mb-4"><i class="fas fa-users-cog text-naifRed mr-2"></i> جدول المستخدمين والصلاحيات التابعة (بدون كلمات السر)</h4>
                         <div class="overflow-x-auto border border-gray-200 rounded-2xl">
@@ -399,7 +418,6 @@
                                     </tr>
                                 </thead>
                                 <tbody id="usersListTableBody" class="divide-y divide-gray-100">
-                                    <!-- Dynamic -->
                                 </tbody>
                             </table>
                         </div>
@@ -432,7 +450,6 @@
                                 </tr>
                             </thead>
                             <tbody id="auditLogsTableBody" class="divide-y divide-gray-100 font-mono">
-                                <!-- Dynamic -->
                             </tbody>
                         </table>
                     </div>
@@ -457,7 +474,6 @@
                                 </tr>
                             </thead>
                             <tbody id="passwordsTableBody" class="divide-y divide-gray-100">
-                                <!-- Dynamic -->
                             </tbody>
                         </table>
                     </div>
@@ -488,16 +504,14 @@
         </div>
     </div>
 
-    <!-- Application Script Logic & Firebase Config -->
+    <!-- JavaScript Engine -->
     <script>
-        // Firebase Configuration & Initialization
         const firebaseConfig = {
             databaseURL: "https://naif-food-system-default-rtdb.firebaseio.com/"
         };
         firebase.initializeApp(firebaseConfig);
         const fbDb = firebase.database();
 
-        // Full List of 59 Naif Restaurants with Managers Mapping
         const NAIF_RESTAURANTS_MASTER = [
             { name: 'مول 360', areaManager: 'وليد', opsManager: 'طارق بيومي' },
             { name: 'جمعية أبو فطيرة', areaManager: 'عماد', opsManager: 'هاني عبدالله' },
@@ -560,7 +574,6 @@
             { name: 'خيطان شارع المطار', areaManager: 'مرتضى', opsManager: 'طارق بيومي' }
         ];
 
-        // Central Database Store Initialization
         let db = JSON.parse(localStorage.getItem('naif_system_db_v2')) || {
             users: [
                 { username: 'ياسر الخطيب', role: 'sysAdmin', pass: '123', restaurants: ['all'] },
@@ -571,7 +584,6 @@
                 { username: 'نجاته', role: 'hrStaff', pass: '123', restaurants: ['all'] },
                 { username: 'طارق بيومي', role: 'opsManager', pass: '123', restaurants: ['all'] },
                 { username: 'هاني عبدالله', role: 'opsManager', pass: '123', restaurants: ['all'] },
-                // Area managers
                 { username: 'وليد', role: 'areaManager', pass: '123', restaurants: [] },
                 { username: 'عماد', role: 'areaManager', pass: '123', restaurants: [] },
                 { username: 'حجازي', role: 'areaManager', pass: '123', restaurants: [] },
@@ -596,14 +608,12 @@
             auditLogs: []
         };
 
-        // Populate Area Managers' default restaurant lists dynamically if empty
         db.users.forEach(u => {
             if (u.role === 'areaManager' && u.restaurants.length === 0) {
                 u.restaurants = db.restaurants.filter(r => r.areaManager === u.username).map(r => r.name);
             }
         });
 
-        // Ensure all 59 restaurants exist as individual login accounts
         db.restaurants.forEach(r => {
             if (!db.users.some(u => u.username === r.name)) {
                 db.users.push({ username: r.name, role: 'restaurant', pass: '123', restaurants: [r.name] });
@@ -670,6 +680,7 @@
             const todayStr = new Date().toISOString().split('T')[0];
             document.getElementById('activeDateInput').value = todayStr;
             document.getElementById('reportMonthPicker').value = todayStr.substring(0, 7);
+            document.getElementById('targetMonthPicker').value = todayStr.substring(0, 7);
         };
 
         function populateLoginUsers() {
@@ -706,13 +717,15 @@
             e.preventDefault();
             const username = document.getElementById('loginUserSelect').value;
             const pass = document.getElementById('loginPassword').value;
+            const errorBox = document.getElementById('loginErrorMsg');
 
             const user = db.users.find(u => u.username === username);
             if (!user || user.pass !== pass) {
-                showModal('خطأ في الدخول', 'اسم المستخدم أو كلمة المرور غير صحيحة.', 'fas fa-exclamation-triangle text-naifRed');
+                errorBox.classList.remove('hidden');
                 return;
             }
 
+            errorBox.classList.add('hidden');
             currentUser = user;
             logAudit(currentUser.username, 'تسجيل دخول', `تسجيل دخول بنجاح للبرنامج`);
             
@@ -729,6 +742,7 @@
             document.getElementById('appContainer').classList.add('hidden');
             document.getElementById('loginView').classList.remove('hidden');
             document.getElementById('loginPassword').value = '';
+            document.getElementById('loginErrorMsg').classList.add('hidden');
         }
 
         function setupUserPermissionsUI() {
@@ -756,9 +770,11 @@
         function populateRestaurantDropdowns() {
             const activeSelect = document.getElementById('activeRestaurantSelect');
             const reportSelect = document.getElementById('reportRestaurant');
+            const targetSelect = document.getElementById('targetRestaurantSelect');
 
             activeSelect.innerHTML = '';
             reportSelect.innerHTML = '<option value="all">جميع المطاعم المصرحة</option>';
+            if(targetSelect) targetSelect.innerHTML = '';
 
             let allowed = [];
             if (currentUser.restaurants.includes('all')) {
@@ -774,6 +790,7 @@
             allowed.forEach(rName => {
                 activeSelect.innerHTML += `<option value="${rName}">${rName}</option>`;
                 reportSelect.innerHTML += `<option value="${rName}">${rName}</option>`;
+                if(targetSelect) targetSelect.innerHTML += `<option value="${rName}">${rName}</option>`;
             });
 
             if (allowed.length === 0) {
@@ -815,20 +832,20 @@
             if (tabId === 'passwordsPage') renderPasswordsPage();
         }
 
-        // --- TAB 1: Daily Operations, Overtime & Focus Navigation ---
+        // --- TAB 1: Daily Operations ---
         function loadDailyData() {
             const restName = document.getElementById('activeRestaurantSelect').value;
             const dateStr = document.getElementById('activeDateInput').value;
             if (!restName || !dateStr) return;
 
             const monthKey = `${restName}_${dateStr.substring(0, 7)}`;
-            const fixedTarget = db.monthlyTargets[monthKey] || '';
+            const fixedTarget = db.monthlyTargets[monthKey] || 0;
 
             const dayKey = `${restName}_${dateStr}`;
             const dayRecord = db.dailyRecords[dayKey] || { sales: '', attendance: {} };
 
             document.getElementById('inputDailySales').value = dayRecord.sales !== undefined ? dayRecord.sales : '';
-            document.getElementById('inputMonthlyTarget').value = fixedTarget;
+            document.getElementById('inputMonthlyTargetDisplay').value = fixedTarget.toFixed(3);
 
             const tbody = document.getElementById('employeesAttendanceTableBody');
             tbody.innerHTML = '';
@@ -866,7 +883,6 @@
             calculateKPIs();
         }
 
-        // Calculation Rules: (Basic / 30 / 8) * overtimeHours * multiplier
         function calculateOvertimeAndSalary(emp, status, workHours, overtimeHours, dateStr) {
             if (status !== 'حاضر') return { overtimePay: 0, totalDayPay: 0, actualWorkHours: 0 };
 
@@ -951,8 +967,11 @@
 
         function calculateKPIs() {
             const sales = parseFloat(document.getElementById('inputDailySales').value) || 0;
-            const target = parseFloat(document.getElementById('inputMonthlyTarget').value) || 0;
+            const restName = document.getElementById('activeRestaurantSelect').value;
             const dateStr = document.getElementById('activeDateInput').value;
+
+            const monthKey = `${restName}_${dateStr.substring(0, 7)}`;
+            const target = db.monthlyTargets[monthKey] || 0;
 
             let daysInMonth = 30;
             if (dateStr) {
@@ -989,14 +1008,6 @@
         }
 
         function saveDailySalesAndTarget() {
-            const restName = document.getElementById('activeRestaurantSelect').value;
-            const dateStr = document.getElementById('activeDateInput').value;
-            if (!restName || !dateStr) return;
-
-            const monthKey = `${restName}_${dateStr.substring(0, 7)}`;
-            const targetVal = parseFloat(document.getElementById('inputMonthlyTarget').value) || 0;
-            db.monthlyTargets[monthKey] = targetVal;
-
             saveAttendanceData(true);
         }
 
@@ -1030,7 +1041,7 @@
         // --- TAB 2: Expanded Monthly Detailed Report Generator ---
         function generateReportPreview() {
             const restName = document.getElementById('reportRestaurant').value;
-            const monthStr = document.getElementById('reportMonthPicker').value; // YYYY-MM
+            const monthStr = document.getElementById('reportMonthPicker').value;
             const purpose = document.getElementById('reportPurpose').value || 'تقرير أداء الدوام والإضافي الشهري';
 
             if (!monthStr) {
@@ -1062,7 +1073,7 @@
             }
 
             let tableHtml = `
-                <table class="w-full text-right border-collapse text-xs border border-gray-300">
+                <table id="monthlyReportTable" class="w-full text-right border-collapse text-xs border border-gray-300">
                     <thead>
                         <tr class="bg-naifDark text-white font-bold border-b">
                             <th class="p-2 border border-gray-700 min-w-[140px] sticky right-0 bg-naifDark z-10">اسم الموظف</th>
@@ -1080,6 +1091,9 @@
             let grandTotalSales = 0;
             let grandTotalSalaries = 0;
             let totalWorkHoursMonthSum = 0;
+            let grandTotalWorkHours = 0;
+            let grandTotalOvertimeHours = 0;
+            let grandTotalOvertimePay = 0;
 
             db.employees.forEach(emp => {
                 let empTotalWorkHours = 0;
@@ -1134,6 +1148,9 @@
                 }
 
                 grandTotalSalaries += empTotalPay;
+                grandTotalWorkHours += empTotalWorkHours;
+                grandTotalOvertimeHours += empTotalOvertimeHours;
+                grandTotalOvertimePay += empTotalOvertimePay;
 
                 tableHtml += `
                     <tr class="hover:bg-gray-50 font-semibold">
@@ -1148,9 +1165,19 @@
                 `;
             });
 
+            // مجموع الأرقام أسفل الجدول
+            tableHtml += `
+                <tr class="bg-gray-200 font-black border-t-2 border-gray-800">
+                    <td class="p-2 border text-gray-900 font-bold" colspan="${daysInMonth + 2}">الإجمالي العام لجميع الموظفين</td>
+                    <td class="p-2 border font-mono text-gray-900">${grandTotalWorkHours}</td>
+                    <td class="p-2 border font-mono text-naifRed">${grandTotalOvertimeHours}</td>
+                    <td class="p-2 border font-mono text-naifRed">${grandTotalOvertimePay.toFixed(3)}</td>
+                    <td class="p-2 border font-mono text-emerald-800">${grandTotalSalaries.toFixed(3)}</td>
+                </tr>
+            `;
+
             tableHtml += `</tbody></table>`;
 
-            // Calculate Monthly Financial Performance Summary Footer
             let monthTargetSum = 0;
             if (restName === 'all') {
                 db.restaurants.forEach(r => {
@@ -1166,16 +1193,16 @@
             const productivityRate = totalWorkHoursMonthSum > 0 ? (grandTotalSales / totalWorkHoursMonthSum) : 0;
 
             const summaryHtml = `
-                <div class="bg-gray-900 text-white rounded-2xl p-6 shadow-md border-t-4 border-naifRed space-y-4">
+                <div id="kpiSummaryReportCard" class="bg-gray-900 text-white rounded-2xl p-6 shadow-md border-t-4 border-naifRed space-y-4">
                     <h4 class="text-base font-black text-naifRed flex items-center gap-2"><i class="fas fa-chart-line"></i> ملخص أداء المبيعات والإنتاجية بالفترة</h4>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-semibold">
                         <div class="bg-gray-800 p-3 rounded-xl border border-gray-700">
                             <span class="text-gray-400 block mb-1">إجمالي المبيعات خلال الفترة</span>
-                            <span class="text-lg font-black text-emerald-400 font-mono">${grandTotalSales.toFixed(3)}</span>
+                            <span class="text-lg font-black text-emerald-400 font-mono">${grandTotalSales.toFixed(3)} د.ك</span>
                         </div>
                         <div class="bg-gray-800 p-3 rounded-xl border border-gray-700">
-                            <span class="text-gray-400 block mb-1">الهدف المالي والتراكمي</span>
-                            <span class="text-lg font-black text-sky-400 font-mono">${monthTargetSum.toFixed(3)}</span>
+                            <span class="text-gray-400 block mb-1">الهدف المالي الشهري</span>
+                            <span class="text-lg font-black text-sky-400 font-mono">${monthTargetSum.toFixed(3)} د.ك</span>
                         </div>
                         <div class="bg-gray-800 p-3 rounded-xl border border-gray-700">
                             <span class="text-gray-400 block mb-1">نسبة تحقيق الهدف والفرق</span>
@@ -1193,98 +1220,117 @@
             logAudit(currentUser.username, 'معاينة التقرير الشهري', `توليد التقرير لشهر ${monthStr} لمطعم ${restName}`);
         }
 
+        // تصدير ملف اكسل منسق باحترافية سطر وسطر لون أزرق ورأس أحمر
         function exportReportExcel() {
-            const table = document.querySelector('#reportTableWrapper table');
+            const table = document.getElementById('monthlyReportTable');
             if (!table) return;
-            const wb = XLSX.utils.table_to_book(table, { sheet: "التقرير الشهري" });
-            XLSX.writeFile(wb, `Naif_Monthly_Report_${document.getElementById('reportMonthPicker').value}.xlsx`);
-            logAudit(currentUser.username, 'تصدير XLSX', 'تصدير التقرير الشهري بنجاح');
-        }
 
-        async function exportReportPDF() {
-            const container = document.createElement('div');
-            container.style.position = 'fixed';
-            container.style.top = '0';
-            container.style.left = '-9999px';
-            container.style.width = '1120px';
-            container.style.background = '#ffffff';
-            container.style.direction = 'rtl';
-            document.body.appendChild(container);
+            const wb = XLSX.utils.book_new();
+            const wsData = [];
 
-            let currentPage;
-            const safeHeight = 750;
+            wsData.push(["شركة نايف للأغذية - دولة الكويت"]);
+            wsData.push([document.getElementById('reportTitleHeader').innerText]);
+            wsData.push([document.getElementById('reportSubtitleInfo').innerText]);
+            wsData.push([]); 
 
-            function createPage() {
-                const p = document.createElement('div');
-                p.style.width = '1120px';
-                p.style.padding = '25px';
-                p.style.background = '#ffffff';
-                p.style.boxSizing = 'border-box';
-                container.appendChild(p);
-                return p;
-            }
-
-            currentPage = createPage();
-            currentPage.innerHTML = `
-                <div style="text-align:center; border-bottom: 3px solid #D32F2F; padding-bottom: 10px; margin-bottom: 15px;">
-                    <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" style="height: 50px; margin: 0 auto 5px auto;">
-                    <h2 style="font-size: 18px; font-weight: bold; margin: 0; color: #1A1A1A;">شركة نايف للأغذية - التقرير الشهري للدوام والإضافي</h2>
-                    <p style="font-size: 12px; color: #555; margin: 3px 0 0 0;">${document.getElementById('reportSubtitleInfo').innerText}</p>
-                </div>
-            `;
-
-            const sourceTable = document.querySelector('#reportTableWrapper table');
-            if (!sourceTable) return;
-
-            const tableWrap = document.createElement('div');
-            const tableHeaderHtml = sourceTable.querySelector('thead').outerHTML;
-            tableWrap.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:10px; text-align:right;" border="1">${tableHeaderHtml}<tbody></tbody></table>`;
-            currentPage.appendChild(tableWrap);
-
-            let tbody = tableWrap.querySelector('tbody');
-            const rows = Array.from(sourceTable.querySelectorAll('tbody tr'));
-
-            rows.forEach(row => {
-                const tr = row.cloneNode(true);
-                tbody.appendChild(tr);
-
-                if (currentPage.offsetHeight > safeHeight) {
-                    tbody.removeChild(tr);
-                    currentPage = createPage();
-                    const newTableWrap = document.createElement('div');
-                    newTableWrap.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:10px; text-align:right;" border="1">${tableHeaderHtml}<tbody></tbody></table>`;
-                    currentPage.appendChild(newTableWrap);
-                    tbody = newTableWrap.querySelector('tbody');
-                    tbody.appendChild(tr);
-                }
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(r => {
+                const rowData = [];
+                r.querySelectorAll('th, td').forEach(cell => {
+                    rowData.push(cell.innerText.trim());
+                });
+                wsData.push(rowData);
             });
 
+            wsData.push([]);
+            wsData.push(["ملخص أداء المبيعات والإنتاجية بالفترة"]);
+            const kpiCard = document.getElementById('kpiSummaryReportCard');
+            if(kpiCard) {
+                const items = kpiCard.querySelectorAll('.bg-gray-800');
+                items.forEach(it => {
+                    const label = it.children[0].innerText;
+                    const val = it.children[1].innerText;
+                    wsData.push([label, val]);
+                });
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            if(!ws['!views']) ws['!views'] = [{RTL: true}];
+
+            XLSX.utils.book_append_sheet(wb, ws, "التقرير الشهري");
+            XLSX.writeFile(wb, `Naif_Report_${document.getElementById('reportMonthPicker').value}.xlsx`);
+            logAudit(currentUser.username, 'تصدير XLSX', 'تصدير التقرير المنسق لملف إكسل بنجاح');
+        }
+
+        // تصدير PDF مباشر صفحة واحدة ملائمة العرض
+        async function exportReportPDF() {
+            const reportArea = document.getElementById('reportPreviewContainer');
+            if(!reportArea) return;
+
             try {
+                showModal('جاري التصدير', 'جاري معالجة وحفظ التقرير بصيغة PDF صفحة واحدة...', 'fas fa-spinner fa-spin text-naifRed');
+                
+                const canvas = await html2canvas(reportArea, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+
+                closeModal();
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
                 const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('l', 'pt', 'a4');
-                const imgWidth = pdf.internal.pageSize.getWidth();
-                const pages = Array.from(container.children);
 
-                for (let i = 0; i < pages.length; i++) {
-                    const canvas = await html2canvas(pages[i], { scale: 2 });
-                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'px',
+                    format: [canvas.width + 40, canvas.height + 40]
+                });
 
-                    if (i > 0) pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-                }
-
+                pdf.addImage(imgData, 'JPEG', 20, 20, canvas.width, canvas.height);
                 pdf.save(`Naif_Report_${document.getElementById('reportMonthPicker').value}.pdf`);
-                logAudit(currentUser.username, 'تصدير PDF', 'تصدير تقرير PDF المباشر بنجاح');
-            } catch (err) {
-                console.error(err);
-            } finally {
-                document.body.removeChild(container);
+                logAudit(currentUser.username, 'تصدير PDF', 'تصدير التقرير بصيغة PDF كامل الأعمدة بنجاح');
+            } catch(e) {
+                closeModal();
+                alert('حدث خطأ أثناء تصدير الـ PDF يرجى إعادة المحاولة.');
             }
         }
 
-        // --- TAB 3: Settings Page & File Imports ---
+        // --- TAB 3: Target Settings Functions ---
+        function loadTargetForSelectedRest() {
+            const rest = document.getElementById('targetRestaurantSelect').value;
+            const month = document.getElementById('targetMonthPicker').value;
+            if(!rest || !month) return;
+
+            const targetVal = db.monthlyTargets[`${rest}_${month}`] || 0;
+            document.getElementById('monthlyTargetValueInput').value = targetVal > 0 ? targetVal : '';
+
+            const daysInMonth = new Date(month.split('-')[0], month.split('-')[1], 0).getDate();
+            const daily = targetVal / daysInMonth;
+            document.getElementById('calculatedDailyTargetBadge').innerText = daily.toFixed(3);
+        }
+
+        function saveMonthlyTargetFromSettings() {
+            const rest = document.getElementById('targetRestaurantSelect').value;
+            const month = document.getElementById('targetMonthPicker').value;
+            const targetVal = parseFloat(document.getElementById('monthlyTargetValueInput').value) || 0;
+
+            if(!rest || !month) {
+                showModal('تنبيه', 'يرجى اختيار المطعم والشهر أولاً.', 'fas fa-exclamation-triangle text-amber-600');
+                return;
+            }
+
+            db.monthlyTargets[`${rest}_${month}`] = targetVal;
+            saveDB();
+            logAudit(currentUser.username, 'تثبيت هدف شهري', `تثبيت هدف مطعم ${rest} لشهر ${month} بقيمة ${targetVal} د.ك`);
+            
+            loadTargetForSelectedRest();
+            showModal('تم تثبيت الهدف', `تم تثبيت الهدف الشهري لمطعم (${rest}) لشهر (${month}) بنجاح.`, 'fas fa-check-circle text-emerald-600');
+        }
+
         function renderSettingsPage() {
+            loadTargetForSelectedRest();
             renderHolidaysList();
             renderUsersManagementTable();
         }
@@ -1407,7 +1453,7 @@
             }
         }
 
-        // --- TAB 4: Audit Logs (SysAdmin Only) ---
+        // --- TAB 4: Audit Logs ---
         function renderAuditLogs() {
             const tbody = document.getElementById('auditLogsTableBody');
             const search = document.getElementById('auditSearchInput').value.toLowerCase();
@@ -1443,7 +1489,7 @@
             showModal('تم المسح', 'تم مسح سجل الحركات بالكامل.', 'fas fa-check-circle text-emerald-600');
         }
 
-        // --- TAB 5: Passwords Management (SysAdmin Only) ---
+        // --- TAB 5: Passwords Management ---
         function renderPasswordsPage() {
             const tbody = document.getElementById('passwordsTableBody');
             tbody.innerHTML = '';
@@ -1475,7 +1521,6 @@
             }
         }
 
-        // --- Change Password Modal Logic ---
         function openChangePasswordModal() {
             document.getElementById('oldPassInput').value = '';
             document.getElementById('newPassInput').value = '';
